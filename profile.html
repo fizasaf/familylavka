@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль — FamilyLavka</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f8f9fa; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2, h3 { color: #333; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .tab-btn { padding: 10px 20px; border: none; background: #f1f1f1; cursor: pointer; border-radius: 6px; font-size: 16px; color: #555; transition: 0.2s; }
+        .tab-btn:hover { background: #e0e0e0; }
+        .tab-btn.active { background: #8e44ad; color: white; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .user-info { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 25px; }
+        .msg { padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; font-weight: 500; }
+        .msg.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .msg.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+        .order-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+        .status-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.3px; }
+        .status-new { background: #dbeafe; color: #1e40af; }
+        .status-in_progress { background: #fef3c7; color: #92400e; }
+        .status-in_transit { background: #e0e7ff; color: #3730a3; }
+        .status-delivered { background: #d1fae5; color: #065f46; }
+        .status-closed { background: #e5e7eb; color: #374151; }
+        .status-cancelled { background: #fee2e2; color: #b91c1c; }
+        .status-paid { background: #d1fae5; color: #065f46; }
+        .status-pending { background: #ffc107; color: black; }
+        .status-return-pending { background: #ffe0b2; color: #e65100; }
+        .status-returned { background: #f8d7da; color: #721c24; }
+        .items-list { list-style: none; padding: 0; margin: 0; }
+        .items-list li { padding: 5px 0; border-bottom: 1px dashed #eee; }
+        .total-row { font-weight: bold; margin-top: 10px; text-align: right; border-top: 2px solid #eee; padding-top: 10px; font-size: 1.1rem; }
+        .order-actions { margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end; }
+
+        .btn { padding: 8px 16px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem; transition: 0.2s; }
+        .btn-return { background: white; color: #e74c3c; border: 1px solid #e74c3c; }
+        .btn-return:hover { background: #e74c3c; color: white; }
+        .btn-return:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-logout { background-color: #dc3545; margin-left: 10px; }
+        .btn-back { background-color: #6c757d; text-decoration: none; color: white; display: inline-block; }
+        .btn-primary { background: #8e44ad; color: white; }
+        .btn-primary:hover { background: #7d3c98; }
+        .btn-cancel { background: #f1f3f5; color: #555; }
+
+        .support-form { background: #fafafa; padding: 20px; border-radius: 8px; }
+        .support-form label { display: block; margin-top: 15px; font-weight: 600; color: #444; }
+        .support-form select, .support-form textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        .support-form button[type="submit"] { padding: 12px 24px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.2s; }
+        .support-form button[type="submit"]:hover { background: #219150; }
+
+        .ticket-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: #fff; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .ticket-card:hover { border-color: #8e44ad; box-shadow: 0 2px 8px rgba(142,68,173,0.15); }
+        .ticket-card-header { display: flex; justify-content: space-between; align-items: center; }
+        .ticket-subject { font-weight: 600; color: #333; font-size: 1rem; }
+        .ticket-date { font-size: 0.8rem; color: #999; }
+        .ticket-preview { color: #666; font-size: 0.88rem; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ticket-status { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+
+        .chat-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .chat-overlay.active { display: flex; }
+        .chat-window { background: white; border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .chat-header { background: #8e44ad; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header-title { font-weight: 600; font-size: 1.05rem; }
+        .chat-close { background: none; border: none; color: white; font-size: 1.6rem; cursor: pointer; padding: 0; line-height: 1; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 20px; background: #f0f0f0; display: flex; flex-direction: column; gap: 10px; }
+        .chat-msg { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 0.92rem; line-height: 1.4; word-wrap: break-word; }
+        .chat-msg.client { align-self: flex-end; background: #8e44ad; color: white; border-bottom-right-radius: 4px; }
+        .chat-msg.admin { align-self: flex-start; background: white; color: #333; border: 1px solid #e0e0e0; border-bottom-left-radius: 4px; }
+        .chat-msg-sender { font-size: 0.72rem; opacity: 0.6; margin-bottom: 3px; }
+        .chat-msg-time { font-size: 0.7rem; opacity: 0.5; margin-top: 4px; }
+        .chat-msg.client .chat-msg-time { color: rgba(255,255,255,0.7); }
+        .chat-input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; background: white; }
+        .chat-input-area textarea { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; resize: none; font-family: inherit; font-size: 0.92rem; box-sizing: border-box; }
+        .chat-input-area button { padding: 10px 18px; background: #8e44ad; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+        .chat-input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .return-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1100; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(3px); }
+        .return-modal-overlay.active { display: flex; }
+        .return-modal { background: white; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 48px rgba(0,0,0,0.15); position: relative; animation: fadeIn 0.3s ease; }
+        .return-modal-header { padding: 18px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .return-modal-body { padding: 20px; }
+        .return-modal-footer { padding: 16px 20px; border-top: 1px solid #f0f0f0; display: flex; gap: 10px; justify-content: flex-end; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 600; color: #444; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none; transition: 0.2s; box-sizing: border-box; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #8e44ad; box-shadow: 0 0 0 3px rgba(142,68,173,0.15); }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+        .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; cursor: pointer; }
+        .checkbox-item input { width: 18px; height: 18px; accent-color: #8e44ad; }
+        .checkbox-item label { cursor: pointer; flex: 1; font-size: 0.9rem; }
+        .return-policy { background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; padding: 14px; margin-bottom: 16px; font-size: 0.85rem; color: #795548; }
+        .return-policy strong { color: #5d4037; }
+
+        .notification-container { position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
+        .notification { padding: 14px 20px; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.2); min-width: 280px; max-width: 420px; animation: slideIn 0.3s ease-out; display: flex; align-items: center; gap: 12px; color: white; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .notif-success { background: #27ae60; }
+        .notif-error { background: #e74c3c; }
+
+        .btn-review { padding: 4px 12px; font-size: 0.8rem; background: #8e44ad; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+        .btn-review:hover { background: #7d3c98; }
+        .review-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1200; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(3px); }
+        .review-modal-overlay.active { display: flex; }
+        .review-modal { background: white; border-radius: 12px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 48px rgba(0,0,0,0.15); animation: fadeIn 0.3s ease; }
+        .review-modal-header { padding: 18px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .review-modal-body { padding: 20px; }
+        .review-modal-footer { padding: 16px 20px; border-top: 1px solid #f0f0f0; display: flex; gap: 10px; justify-content: flex-end; }
+        .star-rating { display: flex; gap: 4px; font-size: 2rem; cursor: pointer; }
+        .star-rating .star { color: #d1d5db; transition: color 0.15s; user-select: none; }
+        .star-rating .star.active { color: #fbbf24; }
+        .star-rating .star:hover { color: #fbbf24; }
+        .review-item-name { background: #f9f9f9; padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; }
+
+        @media (max-width: 600px) {
+            .order-actions { flex-direction: column; }
+            .order-actions .btn { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>👤 Мой профиль</h2>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('profile')">Профиль и заказы</button>
+        <button class="tab-btn" onclick="switchTab('support')">Поддержка</button>
+    </div>
+    <div id="status" class="msg"></div>
+
+    <div id="tab-profile" class="tab-content active">
+        <div id="userInfo" class="user-info" style="display:none;">
+            <h3>Данные аккаунта</h3>
+            <p><b>ID:</b> <span id="u-id"></span></p>
+            <p><b>Email / Логин:</b> <span id="u-email"></span></p>
+            <p><b>Статус:</b> <span style="color:green;">Активен</span></p>
+            <br>
+            <button id="logoutBtn" class="btn btn-logout">Выйти из аккаунта</button>
+            <a href="FamilyLavka.html"><button class="btn btn-back">← Вернуться в магазин</button></a>
+        </div>
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+        <h3>📦 История заказов</h3>
+        <div id="orders-container"><p>Загрузка данных...</p></div>
+    </div>
+
+    <div id="tab-support" class="tab-content">
+        <h3>📩 Поддержка FamilyLavka</h3>
+        <p style="color:#555;">Если у вас есть вопросы по заказу, доставке или работе сайта — напишите нам.</p>
+        <form id="supportForm" class="support-form">
+            <input type="hidden" id="supportUserId" name="user_id" value="0">
+            <label for="supportSubject"><b>Тема обращения</b></label>
+            <select id="supportSubject" name="subject" required>
+                <option value="order">Вопрос по заказу</option>
+                <option value="delivery">Вопрос по доставке</option>
+                <option value="payment">Проблема с оплатой</option>
+                <option value="other">Другое</option>
+            </select>
+            <label for="supportMessage"><b>Сообщение</b></label>
+            <textarea id="supportMessage" name="message" rows="5" placeholder="Опишите проблему подробно..." required></textarea>
+            <button type="submit">Отправить в поддержку</button>
+        </form>
+        <div id="supportStatus" class="msg" style="margin-top:15px;"></div>
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+        <h3>📋 Мои обращения</h3>
+        <div id="tickets-container"><p style="color:#999;">Загрузка обращений...</p></div>
+    </div>
+</div>
+
+<div id="chatOverlay" class="chat-overlay">
+    <div class="chat-window">
+        <div class="chat-header">
+            <span class="chat-header-title" id="chatTitle">Переписка</span>
+            <button class="chat-close" id="chatClose">&times;</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-area" id="chatInputArea">
+            <textarea id="chatInput" rows="2" placeholder="Введите сообщение..."></textarea>
+            <button id="chatSendBtn">Отправить</button>
+        </div>
+    </div>
+</div>
+
+<div class="return-modal-overlay" id="return-modal">
+    <div class="return-modal">
+        <div class="return-modal-header">
+            <h3 style="margin:0; font-weight:700;">Оформление возврата</h3>
+            <button onclick="closeReturnModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999;">&times;</button>
+        </div>
+        <div class="return-modal-body">
+            <div class="return-policy">
+                <strong>Условия возврата:</strong><br>
+                Возврат возможен в течение 14 дней с момента получения. Товар должен сохранить товарный вид, упаковку и потребительские свойства. Деньги вернутся в течение 10 дней.
+            </div>
+            <div class="form-group">
+                <label>Заказ</label>
+                <input type="text" id="return-order-id" readonly style="background:#f9f9f9;">
+            </div>
+            <div class="form-group">
+                <label>Выберите товары для возврата</label>
+                <div class="checkbox-group" id="return-items-list"></div>
+            </div>
+            <div class="form-group">
+                <label>Причина возврата</label>
+                <select id="return-reason">
+                    <option value="">— Выберите причину —</option>
+                    <option value="defective">Брак / неисправность</option>
+                    <option value="not-as-described">Не соответствует описанию</option>
+                    <option value="damaged">Повреждён при доставке</option>
+                    <option value="changed-mind">Передумал(а)</option>
+                    <option value="wrong-item">Пришёл не тот товар</option>
+                    <option value="other">Другая причина</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Комментарий (необязательно)</label>
+                <textarea id="return-comment" placeholder="Опишите проблему подробнее..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Способ возврата денег</label>
+                <select id="return-refund-method">
+                    <option value="card">На банковскую карту</option>
+                    <option value="sbp">Через СБП</option>
+                    <option value="cash">Наличными при самовывозе</option>
+                </select>
+            </div>
+            <div class="form-group" id="refund-details-group">
+                <label>Реквизиты для возврата</label>
+                <textarea id="refund-details" placeholder="Номер карты или телефон для СБП"></textarea>
+            </div>
+        </div>
+        <div class="return-modal-footer">
+            <button class="btn btn-cancel" onclick="closeReturnModal()">Отмена</button>
+            <button class="btn btn-primary" id="submit-return-btn" onclick="submitReturn()">Отправить заявку</button>
+        </div>
+    </div>
+</div>
+
+<div class="review-modal-overlay" id="review-modal">
+    <div class="review-modal">
+        <div class="review-modal-header">
+            <h3 style="margin:0;font-weight:700;">Оставить отзыв</h3>
+            <button onclick="closeReviewModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">&times;</button>
+        </div>
+        <div class="review-modal-body">
+            <div class="review-item-name" id="review-product-name"></div>
+            <div class="form-group">
+                <label>Ваша оценка</label>
+                <div class="star-rating" id="star-rating">
+                    <span class="star" data-val="1">★</span>
+                    <span class="star" data-val="2">★</span>
+                    <span class="star" data-val="3">★</span>
+                    <span class="star" data-val="4">★</span>
+                    <span class="star" data-val="5">★</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea id="review-comment" placeholder="Расскажите о товаре..." style="min-height:100px;resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="review-modal-footer">
+            <button class="btn btn-cancel" onclick="closeReviewModal()">Отмена</button>
+            <button class="btn btn-primary" id="submit-review-btn" onclick="submitReview()">Отправить</button>
+        </div>
+    </div>
+</div>
+
+<div id="notification-container" class="notification-container"></div>
+
+<script>
+    let userEmail = '';
+    let currentUserId = 0;
+    let currentChatTicketId = null;
+    let chatPollTimer = null;
+    let lastMsgCount = 0;
+    let userOrders = [];
+    let currentReturnOrder = null;
+    let currentReviewItem = null;
+    let currentReviewOrderId = null;
+    let selectedRating = 0;
+
+    function getStatusInfo(status) {
+        const map = {
+            'new': { cls: 'status-new', text: 'Новый' },
+            'in_progress': { cls: 'status-in_progress', text: 'В работе' },
+            'in_transit': { cls: 'status-in_transit', text: 'В пути' },
+            'delivered': { cls: 'status-delivered', text: 'Доставлен' },
+            'closed': { cls: 'status-closed', text: 'Закрыт' },
+            'cancelled': { cls: 'status-cancelled', text: 'Отменён' },
+            'paid': { cls: 'status-paid', text: 'Оплачен' },
+            'pending': { cls: 'status-pending', text: 'Ожидает' },
+            'completed': { cls: 'status-delivered', text: 'Выполнен' },
+            'processing': { cls: 'status-in_progress', text: 'В обработке' },
+            'shipped': { cls: 'status-in_transit', text: 'Отправлен' },
+            'answered': { cls: 'status-paid', text: 'Отвечен' },
+            'return-pending': { cls: 'status-return-pending', text: 'Возврат рассматривается' },
+            'return-approved': { cls: 'status-return-pending', text: 'Возврат одобрен' },
+            'returned': { cls: 'status-returned', text: 'Возврат выполнен' }
+        };
+        return map[status] || { cls: 'status-new', text: status || 'Неизвестен' };
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        const contentEl = document.getElementById('tab-' + tabName);
+        if (contentEl) contentEl.classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            const text = btn.textContent.toLowerCase();
+            if (text.includes(tabName === 'profile' ? 'профиль' : 'поддержка')) btn.classList.add('active');
+        });
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function formatTime(dateStr) {
+        if (!dateStr) return '';
+        try { return new Date(dateStr).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+        catch (e) { return ''; }
+    }
+
+    async function checkAuth() {
+        const statusEl = document.getElementById('status');
+        const userEl = document.getElementById('userInfo');
+        if (!statusEl || !userEl) return;
+        try {
+            const res = await fetch('api/auth.php?check=1');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (data.success && data.data && data.data.loggedIn && data.data.user) {
+                statusEl.className = 'msg success';
+                statusEl.textContent = 'Вы авторизованы в системе.';
+                userEl.style.display = 'block';
+                const u = data.data.user;
+                currentUserId = u.id;
+                document.getElementById('u-id').textContent = u.id;
+                document.getElementById('u-email').textContent = u.email || u.login;
+                document.getElementById('supportUserId').value = u.id;
+                userEmail = u.email || u.login || '';
+                localStorage.setItem('user_id', u.id);
+                loadOrders(u.id);
+                loadTickets(u.id);
+            } else {
+                statusEl.className = 'msg error';
+                statusEl.textContent = 'Вы не авторизованы. Перенаправление на страницу входа...';
+                userEl.style.display = 'none';
+                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+            }
+        } catch (e) {
+            console.error('Ошибка авторизации:', e);
+            statusEl.className = 'msg error';
+            statusEl.textContent = 'Ошибка соединения с сервером.';
+            userEl.style.display = 'none';
+        }
+    }
+
+    async function loadOrders(userId) {
+        const container = document.getElementById('orders-container');
+        if (!container) return;
+        container.innerHTML = '<p>Загрузка истории заказов...</p>';
+        try {
+            const res = await fetch('api/get-orders.php?user_id=' + userId + '&_=' + Date.now());
+            const text = await res.text();
+
+            if (text.trim().startsWith('<') || !text.trim()) {
+                console.error('Сервер вернул HTML вместо JSON:', text.substring(0, 500));
+                container.innerHTML = '<p style="color:red;">Ошибка загрузки заказов. Проверьте api/get-orders.php</p>';
+                return;
+            }
+
+            const data = JSON.parse(text);
+
+            if (!data.success) {
+                container.innerHTML = '<p>' + escapeHtml(data.message || data.error || 'Не удалось загрузить заказы') + '</p>';
+                return;
+            }
+
+            const orders = data.data ? (data.data.orders || []) : (data.orders || []);
+            userOrders = orders;
+
+            if (orders.length === 0) {
+                container.innerHTML = '<p>У вас пока нет заказов.</p>';
+                return;
+            }
+
+            let html = '';
+            orders.forEach((order, idx) => {
+                const orderId = order.id ?? 'unknown-' + idx;
+                let createdAt = 'Дата неизвестна';
+                if (order.created_at) {
+                    try { createdAt = new Date(order.created_at).toLocaleString('ru-RU'); }
+                    catch (e) { createdAt = order.created_at; }
+                }
+                const totalAmount = (order.total_amount ?? order.total ?? 0).toLocaleString();
+                const statusInfo = getStatusInfo(order.status);
+
+                let items = [];
+                if (order.items) {
+                    if (Array.isArray(order.items)) items = order.items;
+                    else if (typeof order.items === 'string') {
+                        try { const p = JSON.parse(order.items); if (Array.isArray(p)) items = p; } catch (e) {}
+                    }
+                }
+
+                const normalizedStatus = (order.status || '').toLowerCase().trim();
+                const canReturn = ['paid', 'delivered', 'completed', 'closed'].includes(normalizedStatus);
+                const canReview = ['delivered', 'completed', 'closed'].includes(normalizedStatus);
+                const returnPending = ['return-pending', 'return-approved', 'returned'].includes(normalizedStatus);
+
+                let itemsHtml = '';
+                if (items.length > 0) {
+                    items.forEach((item, itemIdx) => {
+                        const name = item.name ?? 'Товар без названия';
+                        const qty = item.qty ?? 1;
+                        const price = item.price ?? 0;
+                        const productId = item.product_id ?? item.id ?? '';
+                        itemsHtml += '<li style="display:flex;justify-content:space-between;align-items:center;gap:10px;">' +
+                            '<span>' + escapeHtml(name) + ' x' + qty + ' — ' + (price * qty).toLocaleString() + ' ₽</span>' +
+                            (canReview ? '<button class="btn-review" onclick="openReviewModal(\'' + orderId + '\', ' + itemIdx + ', ' + JSON.stringify(productId).replace(/"/g, '&quot;') + ', ' + JSON.stringify(name).replace(/"/g, '&quot;') + ')">Отзыв</button>' : '') +
+                            '</li>';
+                    });
+                } else {
+                    itemsHtml = '<li>⚠️ В заказе нет списка товаров</li>';
+                }
+
+                let actionsHtml = '';
+                if (canReturn) {
+                    actionsHtml = '<div class="order-actions"><button class="btn btn-return" onclick="openReturnModal(\'' + orderId + '\')">Оформить возврат</button></div>';
+                } else if (returnPending) {
+                    var btnText = 'Возврат на рассмотрении';
+                    if (normalizedStatus === 'return-approved') btnText = 'Возврат одобрен';
+                    if (normalizedStatus === 'returned') btnText = 'Возврат выполнен';
+                    actionsHtml = '<div class="order-actions"><button class="btn btn-return" disabled>' + btnText + '</button></div>';
+                }
+
+                html += '<div class="order-card">' +
+                    '<div class="order-header"><span>Заказ №' + escapeHtml(String(orderId)) + ' от ' + escapeHtml(createdAt) + '</span><span class="status-badge ' + statusInfo.cls + '">' + statusInfo.text + '</span></div>' +
+                    '<ul class="items-list">' + itemsHtml + '</ul>' +
+                    '<div class="total-row">Итого: ' + totalAmount + ' ₽</div>' +
+                    actionsHtml +
+                    '</div>';
+            });
+            container.innerHTML = html;
+        } catch (e) {
+            console.error('loadOrders error:', e);
+            container.innerHTML = '<p style="color:red;">Ошибка загрузки заказов.</p>';
+        }
+    }
+
+    // --- ОТЗЫВЫ ---
+    function openReviewModal(orderId, itemIdx, productId, productName) {
+        const order = userOrders.find(o => String(o.id) === String(orderId));
+        if (!order) { showNotification('Заказ не найден', 'error'); return; }
+
+        let items = [];
+        if (order.items) {
+            if (Array.isArray(order.items)) items = order.items;
+            else if (typeof order.items === 'string') { try { const p = JSON.parse(order.items); if (Array.isArray(p)) items = p; } catch (e) {} }
+        }
+
+        currentReviewItem = items[itemIdx];
+        if (!currentReviewItem) { showNotification('Товар не найден', 'error'); return; }
+
+        currentReviewOrderId = orderId;
+        selectedRating = 0;
+
+        document.getElementById('review-product-name').textContent = currentReviewItem.name ?? 'Товар';
+        document.getElementById('review-comment').value = '';
+
+        document.querySelectorAll('#star-rating .star').forEach(s => s.classList.remove('active'));
+
+        document.getElementById('review-modal').classList.add('active');
+    }
+
+    function closeReviewModal() {
+        document.getElementById('review-modal').classList.remove('active');
+        currentReviewItem = null;
+        currentReviewOrderId = null;
+        selectedRating = 0;
+    }
+
+    document.querySelectorAll('#star-rating .star').forEach(star => {
+        star.addEventListener('click', function() {
+            selectedRating = parseInt(this.dataset.val);
+            document.querySelectorAll('#star-rating .star').forEach(s => {
+                s.classList.toggle('active', parseInt(s.dataset.val) <= selectedRating);
+            });
+        });
+    });
+
+    document.getElementById('review-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeReviewModal();
+    });
+
+    async function submitReview() {
+        if (!currentReviewItem) return;
+        if (selectedRating === 0) { showNotification('Поставьте оценку', 'error'); return; }
+
+        const comment = document.getElementById('review-comment').value.trim();
+        const btn = document.getElementById('submit-review-btn');
+        btn.textContent = 'Отправка...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('api/submit-review.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product_id: currentReviewItem.product_id ?? currentReviewItem.id ?? '',
+                    order_id: currentReviewOrderId,
+                    user_id: currentUserId,
+                    rating: selectedRating,
+                    comment: comment
+                })
+            });
+
+            const text = await res.text();
+            if (text.trim().startsWith('<') || !text.trim()) {
+                showNotification('Ошибка сервера', 'error');
+                return;
+            }
+
+            const data = JSON.parse(text);
+            if (data.success) {
+                showNotification('Отзыв отправлен! Спасибо.', 'success');
+                closeReviewModal();
+            } else {
+                showNotification(data.message || 'Не удалось отправить отзыв', 'error');
+            }
+        } catch (e) {
+            showNotification('Ошибка соединения', 'error');
+        } finally {
+            btn.textContent = 'Отправить';
+            btn.disabled = false;
+        }
+    }
+
+    // --- ВОЗВРАТ ---
+    function openReturnModal(orderId) {
+        const order = userOrders.find(o => String(o.id) === String(orderId));
+        if (!order) { showNotification('Заказ не найден', 'error'); return; }
+
+        currentReturnOrder = order;
+        document.getElementById('return-order-id').value = orderId;
+
+        let items = [];
+        if (order.items) {
+            if (Array.isArray(order.items)) items = order.items;
+            else if (typeof order.items === 'string') { try { const p = JSON.parse(order.items); if (Array.isArray(p)) items = p; } catch (e) {} }
+        }
+
+        const itemsList = document.getElementById('return-items-list');
+        itemsList.innerHTML = items.map((item, idx) => {
+            const name = item.name ?? 'Товар';
+            const qty = item.qty ?? 1;
+            const price = parseFloat(item.price) || 0;
+            return '<div class="checkbox-item">' +
+                '<input type="checkbox" id="return-item-' + idx + '" value="' + idx + '">' +
+                '<label for="return-item-' + idx + '"><strong>' + escapeHtml(name) + '</strong> — ' + qty + ' шт. × ' + price.toLocaleString('ru-RU') + ' ₽</label>' +
+                '</div>';
+        }).join('');
+
+        document.getElementById('return-reason').value = '';
+        document.getElementById('return-comment').value = '';
+        document.getElementById('return-refund-method').value = 'card';
+        document.getElementById('refund-details-group').style.display = 'block';
+        document.getElementById('refund-details').value = '';
+
+        document.getElementById('return-modal').classList.add('active');
+    }
+
+    function closeReturnModal() {
+        document.getElementById('return-modal').classList.remove('active');
+        currentReturnOrder = null;
+    }
+
+    async function submitReturn() {
+        if (!currentReturnOrder) return;
+
+        const reason = document.getElementById('return-reason').value;
+        if (!reason) { showNotification('Выберите причину возврата', 'error'); return; }
+
+        const checkboxes = document.querySelectorAll('#return-items-list input[type="checkbox"]:checked');
+        if (checkboxes.length === 0) { showNotification('Выберите товары для возврата', 'error'); return; }
+
+        let items = [];
+        if (currentReturnOrder.items) {
+            if (Array.isArray(currentReturnOrder.items)) items = currentReturnOrder.items;
+            else if (typeof currentReturnOrder.items === 'string') { try { const p = JSON.parse(currentReturnOrder.items); if (Array.isArray(p)) items = p; } catch (e) {} }
+        }
+
+        const selectedItems = [];
+        checkboxes.forEach(cb => {
+            const idx = parseInt(cb.value);
+            const item = items[idx];
+            if (item) selectedItems.push({ name: item.name, qty: item.qty, price: item.price });
+        });
+
+        const refundMethod = document.getElementById('return-refund-method').value;
+        const refundDetails = document.getElementById('refund-details').value;
+
+        if (refundMethod !== 'cash' && !refundDetails.trim()) {
+            showNotification('Укажите реквизиты для возврата', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('submit-return-btn');
+        btn.textContent = 'Отправка...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('api/return-request.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    order_id: currentReturnOrder.id,
+                    user_id: currentUserId || null,
+                    email: userEmail || null,
+                    items: selectedItems,
+                    reason: reason,
+                    comment: document.getElementById('return-comment').value,
+                    refund_method: refundMethod,
+                    refund_details: refundDetails
+                })
+            });
+
+            const text = await res.text();
+            console.log('RAW ответ return-request.php:', text);
+
+            if (text.trim().startsWith('<') || !text.trim()) {
+                console.error('Сервер вернул HTML:', text.substring(0, 500));
+                showNotification('Ошибка сервера. Откройте консоль (F12).', 'error');
+                return;
+            }
+
+            const data = JSON.parse(text);
+            if (data.success) {
+                showNotification('Заявка на возврат отправлена!', 'success');
+                closeReturnModal();
+                loadOrders(currentUserId);
+            } else {
+                throw new Error(data.error || data.message || 'Ошибка сервера');
+            }
+        } catch (e) {
+            console.error('Ошибка:', e);
+            showNotification('Не удалось отправить заявку: ' + e.message, 'error');
+        } finally {
+            btn.textContent = 'Отправить заявку';
+            btn.disabled = false;
+        }
+    }
+
+    document.getElementById('return-refund-method').addEventListener('change', function() {
+        const group = document.getElementById('refund-details-group');
+        group.style.display = this.value === 'cash' ? 'none' : 'block';
+    });
+
+    const returnModalOverlay = document.getElementById('return-modal');
+    returnModalOverlay.addEventListener('click', function(e) {
+        if (e.target === this) closeReturnModal();
+    });
+
+    // --- Тикеты и чат ---
+    async function loadTickets(userId) {
+        const container = document.getElementById('tickets-container');
+        if (!container) return;
+        container.innerHTML = '<p style="color:#999;">Загрузка обращений...</p>';
+        try {
+            const res = await fetch('api/get-user-tickets.php?user_id=' + userId + '&_=' + Date.now());
+            const data = await res.json();
+            if (!data.success) { container.innerHTML = '<p style="color:red;">' + escapeHtml(data.message || 'Ошибка') + '</p>'; return; }
+            const tickets = data.tickets || [];
+            if (tickets.length === 0) { container.innerHTML = '<p style="color:#999;">У вас пока нет обращений в поддержку.</p>'; return; }
+            let html = '';
+            tickets.forEach(t => {
+                const statusInfo = getStatusInfo(t.status);
+                const msgCount = (t.messages || []).length;
+                const lastMsg = msgCount > 0 ? (t.messages[msgCount - 1].message || '').substring(0, 60) : '';
+                html += '<div class="ticket-card" onclick="openChat(' + t.id + ', ' + escapeHtml(JSON.stringify(t.subject || 'Без темы')) + ')"><div class="ticket-card-header"><span class="ticket-subject">' + escapeHtml(t.subject || 'Без темы') + '</span><span class="ticket-status ' + statusInfo.cls + '">' + statusInfo.text + '</span></div><div class="ticket-date">' + formatTime(t.created_at) + ' · ' + msgCount + ' сообщ.</div>' + (lastMsg ? '<div class="ticket-preview">' + escapeHtml(lastMsg) + '...</div>' : '') + '</div>';
+            });
+            container.innerHTML = html;
+        } catch (e) { console.error('loadTickets error:', e); container.innerHTML = '<p style="color:red;">Ошибка загрузки обращений.</p>'; }
+    }
+
+    function openChat(ticketId, subject) {
+        currentChatTicketId = ticketId;
+        document.getElementById('chatTitle').textContent = subject || 'Переписка';
+        document.getElementById('chatOverlay').classList.add('active');
+        document.getElementById('chatInput').value = '';
+        lastMsgCount = 0;
+        loadChatMessages(ticketId);
+        if (chatPollTimer) clearInterval(chatPollTimer);
+        chatPollTimer = setInterval(function() {
+            if (currentChatTicketId) loadChatMessages(currentChatTicketId, true);
+        }, 3000);
+    }
+
+    function closeChat() {
+        document.getElementById('chatOverlay').classList.remove('active');
+        currentChatTicketId = null;
+        if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+    }
+
+    async function loadChatMessages(ticketId, isPolling) {
+        const container = document.getElementById('chatMessages');
+        if (!container) return;
+        if (!isPolling) container.innerHTML = '<p style="color:#999; text-align:center;">Загрузка...</p>';
+        try {
+            const res = await fetch('api/get-user-tickets.php?user_id=' + currentUserId + '&ticket_id=' + ticketId + '&_=' + Date.now());
+            const data = await res.json();
+            if (!data.success || !data.tickets || data.tickets.length === 0) {
+                if (!isPolling) container.innerHTML = '<p style="color:red; text-align:center;">Не удалось загрузить</p>';
+                return;
+            }
+            const ticket = data.tickets[0];
+            const messages = ticket.messages || [];
+            const isClosed = (ticket.status === 'closed' || ticket.status === 'cancelled');
+            if (isPolling && messages.length === lastMsgCount && !isClosed) return;
+            lastMsgCount = messages.length;
+            if (messages.length === 0) {
+                if (!isPolling) container.innerHTML = '<p style="color:#999; text-align:center;">Сообщений пока нет</p>';
+            } else {
+                let html = '';
+                messages.forEach(function(m) {
+                    var isClient = m.sender === 'client';
+                    var senderLabel = isClient ? 'Вы' : 'Администратор';
+                    html += '<div class="chat-msg ' + (isClient ? 'client' : 'admin') + '"><div class="chat-msg-sender">' + senderLabel + '</div><div>' + escapeHtml(m.message) + '</div><div class="chat-msg-time">' + formatTime(m.created_at) + '</div></div>';
+                });
+                container.innerHTML = html;
+                container.scrollTop = container.scrollHeight;
+            }
+            const inputArea = document.getElementById('chatInputArea');
+            if (isClosed) {
+                if (inputArea) inputArea.innerHTML = '<div style="padding:15px;text-align:center;color:#999;font-size:0.9rem;background:#f9fafb;border-radius:8px;">🔒 Чат закрыт. Если у вас остались вопросы — создайте новое обращение выше.</div>';
+                if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+                loadTickets(currentUserId);
+            } else {
+                if (!document.getElementById('chatInput')) {
+                    inputArea.innerHTML = '<textarea id="chatInput" rows="2" placeholder="Введите сообщение..."></textarea><button id="chatSendBtn">Отправить</button>';
+                    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+                    document.getElementById('chatInput').addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+                    });
+                }
+            }
+        } catch (e) {
+            if (!isPolling) { console.error('loadChatMessages error:', e); container.innerHTML = '<p style="color:red; text-align:center;">Ошибка загрузки</p>'; }
+        }
+    }
+
+    async function sendChatMessage() {
+        var input = document.getElementById('chatInput');
+        if (!input) return;
+        var btn = document.getElementById('chatSendBtn');
+        if (!btn) return;
+        var text = input.value.trim();
+        if (!text || !currentChatTicketId) return;
+        btn.disabled = true; input.disabled = true;
+        try {
+            const res = await fetch('api/client-reply-support.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticket_id: currentChatTicketId, message: text })
+            });
+            const data = await res.json();
+            if (data.success) {
+                input.value = '';
+                lastMsgCount = 0;
+                loadChatMessages(currentChatTicketId);
+                loadTickets(currentUserId);
+            } else {
+                alert('Ошибка: ' + (data.message || 'Не удалось отправить'));
+            }
+        } catch (e) {
+            console.error('sendChatMessage error:', e);
+            alert('Ошибка соединения');
+        } finally {
+            var newBtn = document.getElementById('chatSendBtn');
+            var newInput = document.getElementById('chatInput');
+            if (newBtn) newBtn.disabled = false;
+            if (newInput) { newInput.disabled = false; newInput.focus(); }
+        }
+    }
+
+    document.getElementById('chatClose').addEventListener('click', closeChat);
+    document.getElementById('chatOverlay').addEventListener('click', function(e) { if (e.target === this) closeChat(); });
+    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+    document.getElementById('chatInput').addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try { await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) }); }
+        catch (e) { console.error(e); }
+        finally { localStorage.removeItem('user_id'); window.location.href = 'login.html'; }
+    });
+
+    function showMessage(text, isSuccess) {
+        const el = document.getElementById('supportStatus');
+        el.className = isSuccess ? 'msg success' : 'msg error';
+        el.style.display = 'block';
+        el.textContent = text;
+    }
+
+    async function sendSupportRequest() {
+        const subjectInput = document.getElementById('supportSubject');
+        const messageInput = document.getElementById('supportMessage');
+        const userIdInput = document.getElementById('supportUserId');
+        const subject = subjectInput.value.trim();
+        const message = messageInput.value.trim();
+        const userId = userIdInput ? parseInt(userIdInput.value) : 0;
+        if (!subject || !message) { showMessage('Заполните все поля.', false); return; }
+        if (!userEmail) { showMessage('Не удалось определить email.', false); return; }
+        try {
+            const response = await fetch('api/client-send-support.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: userEmail, email: userEmail, subject: subject, message: message, user_id: userId })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showMessage('Обращение отправлено!', true);
+                document.getElementById('supportForm').reset();
+                loadTickets(userId);
+            } else { showMessage('Ошибка: ' + (result.message || 'Неизвестная'), false); }
+        } catch (error) { console.error(error); showMessage('Ошибка соединения.', false); }
+    }
+
+    function showNotification(message, type = 'success') {
+        const container = document.getElementById('notification-container');
+        const notif = document.createElement('div');
+        notif.className = `notification ${type === 'error' ? 'notif-error' : 'notif-success'}`;
+        notif.innerHTML = `<span>${type === 'error' ? '⚠️' : '✅'}</span><span>${message}</span>`;
+        container.appendChild(notif);
+        setTimeout(() => { notif.style.opacity = '0'; setTimeout(() => notif.remove(), 300); }, 3500);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('supportForm');
+        if (form) form.addEventListener('submit', (e) => { e.preventDefault(); sendSupportRequest(); });
+    });
+
+    checkAuth();
+</script>
+</body>
+</html>

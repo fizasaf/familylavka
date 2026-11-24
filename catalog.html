@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Каталог товаров</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+    .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; text-align: center; }
+    .card img { width: 100%; height: 200px; object-fit: cover; background: #f5f5f5; }
+    .price { font-weight: bold; color: #2c3e50; margin: 10px 0; }
+    button { padding: 8px 16px; background: #3498db; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    button:hover { background: #2980b9; }
+    .msg { margin-top: 10px; padding: 8px; border-radius: 4px; word-wrap: break-word; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  </style>
+</head>
+<body>
+<h2>Каталог</h2>
+<a href="cart.html">Корзина</a> | <a href="profile.html">Профиль</a>
+
+<div id="msg" class="msg" style="display:none;"></div>
+<div class="grid" id="productsGrid"></div>
+
+<script>
+  async function loadProducts() {
+    const msg = document.getElementById('msg');
+    const grid = document.getElementById('productsGrid');
+
+    msg.style.display = 'block';
+    msg.className = 'msg success';
+    msg.textContent = 'Загрузка товаров...';
+
+    try {
+      const res = await fetch('products.php');
+
+      if (!res.ok) {
+        throw new Error('Статус ответа: ' + res.status);
+      }
+
+      // Сразу парсим как JSON — это надёжнее, чем text().startsWith('{')
+      const data = await res.json();
+
+      // Проверка структуры ответа
+      if (!data || data.success !== true || !Array.isArray(data.data)) {
+        msg.className = 'msg error';
+        msg.textContent = data?.message || 'Неверный формат данных от сервера. Проверьте products.php.';
+        return;
+      }
+
+      const products = data.data; // используем ключ data, как в products.php
+
+      grid.innerHTML = '';
+
+      // Безопасная проверка длины
+      if (products.length === 0) {
+        msg.className = 'msg';
+        msg.textContent = 'В каталоге пока нет товаров.';
+        return;
+      }
+
+      products.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        // Если картинки нет — ставим заглушку
+        const imgSrc = product.image
+          ? ('images/' + product.image).replace(/\/+/g, '/') // защита от двойных слешей
+          : 'https://via.placeholder.com/200?text=No+Image';
+
+        card.innerHTML = `
+          <img src="${imgSrc}" alt="${product.name || 'Товар'}">
+          <h3>${product.name || 'Без названия'}</h3>
+          <div class="price">${(product.price || 0).toLocaleString('ru-RU')} ₽</div>
+          <button onclick="addToCart(${Number(product.id) || 0})">В корзину</button>
+        `;
+        grid.appendChild(card);
+      });
+
+      msg.style.display = 'none';
+
+    } catch (e) {
+      console.error(e);
+      msg.style.display = 'block';
+      msg.className = 'msg error';
+      msg.innerHTML = 'Ошибка загрузки: ' + e.message + '<br><small>Открой в новой вкладке products.php и проверь, что там чистый JSON.</small>';
+    }
+  }
+
+  async function addToCart(productId) {
+    if (!productId || Number.isNaN(Number(productId))) {
+      console.warn('Некорректный ID товара:', productId);
+      return;
+    }
+
+    const msg = document.getElementById('msg');
+    msg.style.display = 'block';
+    msg.className = 'msg success';
+    msg.textContent = 'Добавляем в корзину...';
+
+    try {
+      const res = await fetch('cart.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'add', product_id: productId, quantity: 1})
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        msg.className = 'msg success';
+        msg.textContent = data.message || 'Товар добавлен в корзину!';
+        setTimeout(() => msg.style.display = 'none', 2500);
+        console.log('Товар успешно добавлен');
+      } else {
+        msg.className = 'msg error';
+        msg.textContent = data.message;
+        if (data.message === 'Требуется авторизация') {
+          setTimeout(() => window.location.href = 'login.html', 1500);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      msg.className = 'msg error';
+      msg.textContent = 'Ошибка сети: ' + e.message;
+    }
+  }
+
+  loadProducts();
+</script>
+</body>
+</html>

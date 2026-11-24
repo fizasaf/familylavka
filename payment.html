@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата заказа — FamilyLavka</title>
+    <!-- Убедись, что этот файл подключен и в нем есть функция clearCart() -->
+    <script src="js/cart-utils.js"></script>
+
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-hover: #43A047;
+            --bg-gradient: linear-gradient(135deg, #f0f4f8 0%, #e6ecf0 100%);
+            --text: #2c3e50;
+            --border: #dbe2e8;
+            --shadow-sm: 0 4px 12px rgba(0,0,0,0.06);
+            --radius: 16px;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .payment-container {
+            background: white;
+            width: 100%;
+            max-width: 520px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            padding: 32px;
+            text-align: center;
+        }
+        h2 { margin-top: 0; color: var(--text); }
+        .qr-wrapper {
+            margin: 24px 0;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        .qr-wrapper img {
+            width: 220px; height: 220px; object-fit: contain;
+            image-rendering: pixelated;
+        }
+        .amount-display {
+            font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-bottom: 28px;
+        }
+        .btn-primary {
+            background: var(--primary); color: white; border: none;
+            padding: 14px 28px; border-radius: 8px; font-size: 1rem;
+            cursor: pointer; transition: 0.2s; width: 100%; max-width: 360px;
+        }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-disabled {
+            background: #ccc; cursor: not-allowed; transform: none;
+        }
+
+        .success-state { display: none; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .success-icon { font-size: 3rem; margin-bottom: 16px; }
+        .sms-block {
+            background: #f1f8e9; color: #2e7d32; padding: 16px;
+            border-radius: 12px; border-left: 5px solid var(--primary);
+            text-align: left; margin: 20px 0; font-size: 0.95rem;
+        }
+        .loader {
+            display: inline-block; width: 20px; height: 20px;
+            border: 3px solid rgba(76,175,80,0.3);
+            border-radius: 50%; border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="payment-container">
+    <!-- Блок QR (виден по умолчанию) -->
+    <div id="qr-block">
+        <h2>Оплата по QR</h2>
+        <p style="color:#7f8c8d; margin-bottom:24px;">Отсканируйте QR‑код в приложении банка.</p>
+        <div class="amount-display">Сумма: <span id="payment-amount">0 ₽</span></div>
+        <div class="qr-wrapper">
+            <img src="images/demo-qr.png" alt="QR для оплаты" />
+        </div>
+        <!-- Кнопка теперь имеет ID и класс -->
+        <button class="btn-primary" id="confirm-payment-btn">Я оплатил</button>
+    </div>
+
+    <!-- Блок «Оплачено» (скрыт по умолчанию) -->
+    <div id="success-block" class="success-state">
+        <div class="success-icon">✅</div>
+        <h2>Благодарим вас за покупку!</h2>
+        <p style="color:#7f8c8d; margin-bottom:20px;">Ваш заказ успешно оформлен.</p>
+
+        <div class="sms-block">
+            <div class="loader"></div>
+            <strong>Отправка SMS‑уведомления клиенту...</strong><br>
+            (в демо‑режиме: имитация отправки)
+        </div>
+
+        <p style="color:#7f8c8d; margin-top: 20px;">
+            Вы остаетесь на этой странице. Корзина уже очищена.
+        </p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
+        const qrBlock = document.getElementById('qr-block');
+        const successBlock = document.getElementById('success-block');
+        const paymentAmountSpan = document.getElementById('payment-amount');
+
+        // Если есть данные заказа, подставляем сумму (для красоты)
+        const pendingOrder = JSON.parse(localStorage.getItem('familylavka_pending_order') || '{}');
+        if (pendingOrder.total) {
+            paymentAmountSpan.textContent = pendingOrder.total + ' ₽';
+        }
+
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.addEventListener('click', async () => {
+                // 1. Блокируем кнопку, чтобы не нажали дважды
+                confirmPaymentBtn.disabled = true;
+                confirmPaymentBtn.classList.add('btn-disabled');
+                confirmPaymentBtn.textContent = 'Обработка...';
+
+                try {
+                    // 2. Отправляем заказ на сервер
+                    const res = await fetch('api/save-order.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            order: pendingOrder
+                        })
+                    });
+
+                    if (res.ok) {
+                        // 3. ВСЁ УСПЕШНО: Очищаем корзину
+                        // Вызываем функцию из cart-utils.js
+                        if (typeof window.clearCart === 'function') {
+                            window.clearCart();
+                        }
+
+                        // Удаляем временный заказ из localStorage
+                        localStorage.removeItem('familylavka_pending_order');
+
+                        // 4. Показываем красивый экран успеха
+                        qrBlock.style.display = 'none';
+                        successBlock.style.display = 'block';
+
+                        console.log('Заказ сохранен, корзина очищена.');
+                    } else {
+                        // Если сервер вернул ошибку (но не 500)
+                        alert('Ошибка при сохранении заказа. Попробуйте обновить страницу.');
+                        resetButton();
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Ошибка соединения с сервером. Проверьте консоль.');
+                    resetButton();
+                }
+            });
+        }
+
+        // Вспомогательная функция для сброса состояния кнопки
+        function resetButton() {
+            confirmPaymentBtn.disabled = false;
+            confirmPaymentBtn.classList.remove('btn-disabled');
+            confirmPaymentBtn.textContent = 'Я оплатил';
+        }
+    });
+</script>
+</body>
+</html>

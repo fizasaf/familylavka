@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Тест карты</title>
+    <!-- Вставь сюда свой ключ -->
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=fbbbdc71-3dcf-428e-b67b-78c9d665606d&lang=ru_RU" type="text/javascript"></script>
+</head>
+<body>
+<div id="map" style="width: 100%; height: 400px;"></div>
+
+<script>
+    ymaps.ready(init);
+    function init() {
+        var myMap = new ymaps.Map('map', {
+            center: [55.751574, 37.573856],
+            zoom: 10
+        });
+    }
+</script>
+</body>
+</html>

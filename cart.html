@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Корзина</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+    h2 { margin-bottom: 15px; }
+    .msg { padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; }
+    .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    .total-row { font-weight: bold; font-size: 1.1em; text-align: right; }
+    button.remove-btn { padding: 6px 12px; background: #dc3545; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    button.remove-btn:hover { background: #c82333; }
+    a { color: #007bff; text-decoration: none; margin-right: 15px; }
+  </style>
+</head>
+<body>
+<h2>Корзина</h2>
+<a href="catalog.html">← Каталог</a> | <a href="profile.html">Профиль</a>
+
+<div id="msg" class="msg"></div>
+
+<table id="cartTable">
+  <thead>
+  <tr>
+    <th>Товар</th>
+    <th>Цена (₽)</th>
+    <th>Количество</th>
+    <th>Итого (₽)</th>
+    <th>Действие</th>
+  </tr>
+  </thead>
+  <tbody id="cartBody">
+  <!-- Строки корзины появятся здесь через JS -->
+  </tbody>
+  <tfoot>
+  <tr class="total-row">
+    <td colspan="4">Общая сумма:</td>
+    <td id="cartTotal">0 ₽</td>
+  </tr>
+  </tfoot>
+</table>
+
+<script>
+  async function loadCart() {
+    const msg = document.getElementById('msg');
+    const body = document.getElementById('cartBody');
+    const totalEl = document.getElementById('cartTotal');
+
+    msg.style.display = 'block';
+    msg.className = 'msg success';
+    msg.textContent = 'Загрузка корзины...';
+
+    try {
+        const res = await fetch('cart.php?action=get');
+
+        console.log('Статус ответа:', res.status); // Смотри в F12 → Console
+
+        const text = await res.text();
+        console.log('Сырой ответ сервера:', text);   // Самое важное — что реально прислал PHP
+
+        if (!text.trim().startsWith('{')) {
+            msg.className = 'msg error';
+            msg.innerHTML = 'Сервер вернул не JSON.<br><b>Ответ сервера:</b><br>' + text.substring(0, 500);
+            body.innerHTML = '';
+            totalEl.textContent = '0 ₽';
+            return;
+        }
+
+        const data = JSON.parse(text);
+
+        if (!data.success) {
+            msg.className = 'msg error';
+            msg.textContent = data.message || 'Ошибка от сервера';
+            body.innerHTML = '';
+            totalEl.textContent = '0 ₽';
+            return;
+        }
+
+        body.innerHTML = '';
+
+        if (data.items.length === 0) {
+            msg.className = 'msg success';
+            msg.textContent = 'Корзина пуста.';
+            totalEl.textContent = '0 ₽';
+            return;
+        }
+
+        let total = 0;
+
+        data.items.forEach(item => {
+            const priceNum = parseFloat(item.price) || 0;
+            const qty = parseInt(item.quantity, 10) || 1;
+            const itemTotal = priceNum * qty;
+            total += itemTotal;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td>${priceNum.toFixed(2)} ₽</td>
+                <td>${qty}</td>
+                <td>${itemTotal.toFixed(2)} ₽</td>
+                <td><button class="remove-btn" onclick="removeFromCart(${item.id})">Удалить</button></td>
+            `;
+            body.appendChild(row);
+        });
+
+        totalEl.textContent = total.toFixed(2) + ' ₽';
+        msg.style.display = 'none';
+    } catch (e) {
+        console.error(e);
+        msg.className = 'msg error';
+        msg.textContent = 'Ошибка соединения: ' + e.message;
+    }
+}
+
+
+  async function removeFromCart(productId) {
+      const id = Number(String(productId).trim());
+      if (!Number.isInteger(id) || id <= 0) {
+          alert('Некорректный ID товара');
+          return;
+      }
+
+      const payload = { action: 'remove', product_id: id };
+      console.log('Отправляем на сервер:', payload);
+
+      try {
+          const res = await fetch('cart.php', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(payload)
+          });
+
+          const text = await res.text();
+          console.log('Сырой ответ сервера:', text);
+
+          if (!text.trim().startsWith('{')) {
+              alert('Сервер вернул не JSON. Открой F12 → Console.');
+              return;
+          }
+
+          const data = JSON.parse(text);
+          console.log('Ответ сервера:', data);
+
+          if (data.success) {
+              loadCart();
+              const msg = document.getElementById('msg');
+              msg.style.display = 'block';
+              msg.className = 'msg success';
+              msg.textContent = data.message || 'Товар удалён';
+              setTimeout(() => msg.style.display = 'none', 2000);
+          } else {
+              alert(data.message || 'Не удалось удалить товар');
+          }
+      } catch (e) {
+          console.error(e);
+          alert('Ошибка сети: ' + e.message);
+      }
+  }
+
+  loadCart();
+</script>
+</body>
+</html>

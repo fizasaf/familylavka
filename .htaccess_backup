@@ -1,0 +1,8 @@
+RewriteEngine On
+RewriteBase /
+
+# Если файл реально существует (картинка, css, html) — отдаём его как есть
+RewriteCond %{REQUEST_FILENAME} !-f
+# Все запросы, начинающиеся на /api/, отправляем в server.php
+RewriteCond %{REQUEST_URI} ^/api/
+RewriteRule ^(.*)$ server.php [L,QSA]

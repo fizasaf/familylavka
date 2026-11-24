@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ — FamilyLavka</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --bg: #f3f4f6;
+            --surface: #ffffff;
+            --text: #1f2937;
+            --border: #e5e7eb;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .auth-screen {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 80vh; text-align: center;
+        }
+        .card {
+            background: var(--surface); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            padding: 32px; width: 100%; max-width: 400px;
+        }
+        input {
+            width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+            border-radius: 6px; margin-bottom: 12px; font-size: 14px; box-sizing: border-box;
+        }
+        button.btn {
+            width: 100%; padding: 10px; border: none; border-radius: 6px;
+            color: white; font-weight: 500; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger { background: var(--danger); }
+
+        header.admin-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+        }
+        .admin-badge {
+            background: #dbeafe; color: #1e40af; padding: 6px 16px; border-radius: 999px;
+            font-size: 13px; font-weight: 600;
+        }
+        .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+        .tab-btn {
+            padding: 8px 16px; border: 1px solid var(--border); background: transparent;
+            border-radius: 6px; cursor: pointer; color: #6b7280;
+        }
+        .tab-btn.active {
+            border-color: var(--primary); color: var(--primary); background: #eff6ff;
+        }
+
+        table { width: 100%; border-collapse: collapse; background: var(--surface); }
+        th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        th { color: #6b7280; font-weight: 400; font-size: 13px; }
+
+        .btn-action {
+            padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;
+            font-size: 12px; font-weight: 500; color: white;
+            transition: opacity 0.2s, background 0.2s;
+        }
+        .btn-action:disabled {
+            background: #d1d5db !important; color: #6b7280 !important;
+            cursor: not-allowed; opacity: 0.7;
+        }
+        .btn-work { background: var(--warning); }
+        .btn-transit { background: var(--info); }
+        .btn-delivered { background: var(--success); }
+        .btn-close { background: #6b7280; }
+        .btn-cancel { background: var(--danger); }
+        .btn-approve { background: var(--success); }
+        .btn-reject { background: var(--danger); }
+        .btn-refund { background: var(--info); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .ticket-card {
+            border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px;
+            background: #fff; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .ticket-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(79,70,229,0.15); }
+        .ticket-card-header { display: flex; justify-content: space-between; align-items: center; }
+        .ticket-subject { font-weight: 600; color: #333; font-size: 1rem; }
+        .ticket-date { font-size: 0.8rem; color: #999; margin-top: 5px; }
+        .ticket-preview { color: #666; font-size: 0.88rem; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ticket-status { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .ticket-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #f3f4f6; }
+
+        .chat-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .chat-overlay.active { display: flex; }
+        .chat-window {
+            background: white; border-radius: 12px; width: 90%; max-width: 500px;
+            max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .chat-header {
+            background: var(--primary); color: white; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .chat-header-title { font-weight: 600; font-size: 1.05rem; }
+        .chat-close {
+            background: none; border: none; color: white; font-size: 1.6rem;
+            cursor: pointer; padding: 0; line-height: 1;
+        }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px; background: #f0f0f0;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .chat-msg { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 0.92rem; line-height: 1.4; word-wrap: break-word; }
+        .chat-msg.admin {
+            align-self: flex-end; background: var(--primary); color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-msg.client {
+            align-self: flex-start; background: white; color: #333;
+            border: 1px solid #e0e0e0; border-bottom-left-radius: 4px;
+        }
+        .chat-msg-sender { font-size: 0.72rem; opacity: 0.6; margin-bottom: 3px; }
+        .chat-msg-time { font-size: 0.7rem; opacity: 0.5; margin-top: 4px; }
+        .chat-msg.admin .chat-msg-time { color: rgba(255,255,255,0.7); }
+        .chat-input-area {
+            padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; background: white;
+        }
+        .chat-input-area textarea {
+            flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px;
+            resize: none; font-family: inherit; font-size: 0.92rem; box-sizing: border-box;
+        }
+        .chat-input-area button {
+            padding: 10px 18px; background: var(--primary); color: white; border: none;
+            border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap;
+        }
+        .chat-input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .product-form-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 1000; justify-content: center; align-items: center;
+}
+.product-form-overlay.active { display: flex; }
+.product-form-panel {
+    background: white; border-radius: 12px; width: 90%; max-width: 540px;
+    max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.product-form-body { flex: 1; overflow-y: auto; padding: 24px; }
+.form-row { margin-bottom: 16px; }
+.form-row label { display: block; margin-bottom: 6px; font-size: 0.9rem; color: #374151; font-weight: 500; }
+.form-row input, .form-row select, .form-row textarea {
+    width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-size: 14px; box-sizing: border-box; font-family: inherit;
+}
+.form-row textarea { resize: vertical; min-height: 80px; }
+.form-img-preview { width: 100%; height: 160px; background: #f3f4f6; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 8px; }
+.form-img-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        .coupon-form-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; }
+.coupon-form-overlay.active { display:flex; }
+.coupon-form-panel { background:white; border-radius:12px; width:90%; max-width:480px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+.coupon-form-body { flex:1; overflow-y:auto; padding:24px; }
+
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="auth-screen" class="auth-screen">
+        <div class="card">
+            <h2 style="margin:0 0 20px;">Админ FamilyLavka</h2>
+            <input id="admin-login" type="text" placeholder="Логин (admin)" required>
+            <input id="admin-pass" type="password" placeholder="Пароль (admin123)" required>
+            <button class="btn btn-primary" id="login-btn">Войти</button>
+            <p id="auth-msg" style="margin-top:12px; font-size:13px;"></p>
+        </div>
+    </div>
+
+    <div id="admin-panel" style="display:none;">
+        <header class="admin-header">
+            <div>
+                <h1 style="margin:0; font-size:24px;">💼 Админ‑панель FamilyLavka</h1>
+                <small style="color:#6b7280;">Заказы, возвраты и обращения клиентов</small>
+            </div>
+            <span id="current-admin-display" class="admin-badge" style="display:none;"></span>
+            <button class="btn btn-danger" id="logout-btn" style="width:auto; padding:8px 16px;">Выйти</button>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="orders">Заказы</button>
+            <button class="tab-btn" data-tab="products">📦Создание товаров</button>
+            <button class="tab-btn" data-tab="coupons">🏷️ Создание промокодов</button>
+            <button class="tab-btn" data-tab="reviews">⭐ Отзывы</button>
+            <button class="tab-btn" data-tab="returns">Возвраты</button>
+            <button class="tab-btn" data-tab="support">Поддержка (обращения)</button>
+        </div>
+
+        <div id="tab-content"></div>
+    </div>
+</div>
+
+<div id="chatOverlay" class="chat-overlay">
+    <div class="chat-window">
+        <div class="chat-header">
+            <span class="chat-header-title" id="chatTitle">Переписка</span>
+            <button class="chat-close" id="chatClose">&times;</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-area" id="chatInputArea">
+            <textarea id="chatInput" rows="2" placeholder="Введите ответ клиенту..."></textarea>
+            <button id="chatSendBtn">Отправить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА СОЗДАНИЯ/РЕДАКТИРОВАНИЯ ТОВАРА -->
+<div class="product-form-overlay" id="product-form-modal">
+    <div class="product-form-panel">
+        <div class="chat-header" style="background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <span id="product-form-title" style="font-weight: 600; font-size: 1.05rem;">Новый товар</span>
+            <button id="product-form-close" style="background:none;border:none;color:white;font-size:1.6rem;cursor:pointer;padding:0;line-height:1;">&times;</button>
+        </div>
+        <div class="product-form-body">
+            <input type="hidden" id="pf-id" value="0">
+            <div class="form-row">
+                <label>Название товара *</label>
+                <input type="text" id="pf-name" placeholder="Напр. Мыло лавандовое">
+            </div>
+            <div class="form-row">
+                <label>Цена (₽) *</label>
+                <input type="number" id="pf-price" placeholder="350" min="1" step="0.01">
+            </div>
+            <div class="form-row">
+                <label>Категория</label>
+                <select id="pf-category">
+                    <option value="soap">Мыло</option>
+                    <option value="candles">Свечи</option>
+                    <option value="ceramics">Керамические изделия</option>
+                    <option value="sets">Подарочные наборы</option>
+                    <option value="other">Другое</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Фотографии товара (5 картинок макс)</label>
+                <input type="file" id="pf-image-file" accept="image/*" multiple style="display:none;">
+                <button type="button" id="pf-upload-btn" style="width:100%;padding:10px;border:2px dashed #d1d5db;border-radius:8px;background:#f9fafb;cursor:pointer;font-size:14px;color:#6b7280;box-sizing:border-box;">
+                    📁 Выбрать файлы с компьютера
+                </button>
+                <input type="hidden" id="pf-image" value="">
+                <div class="form-img-preview" id="pf-img-preview" style="height:auto;min-height:80px;flex-wrap:wrap;gap:8px;padding:8px;align-items:flex-start;">
+                    <span style="color:#9ca3af;font-size:0.85rem;">Фотографии не выбраны</span>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label>Описание</label>
+                <textarea id="pf-description" placeholder="До 240 Символов"></textarea>
+            </div>
+        </div>
+        <div style="padding: 16px 24px; border-top: 1px solid #eee; display: flex; gap: 12px;">
+            <button id="pf-cancel" style="flex:1; padding:10px; background:#f1f3f5; border:none; border-radius:6px; cursor:pointer; font-weight:500;">Отмена</button>
+            <button id="pf-save" style="flex:2; padding:10px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="coupon-form-overlay" id="coupon-form-modal">
+    <div class="coupon-form-panel">
+        <div class="chat-header" style="background:var(--primary); color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+            <span id="coupon-form-title" style="font-weight:600; font-size:1.05rem;">Новый промокод</span>
+            <button id="coupon-form-close" style="background:none;border:none;color:white;font-size:1.6rem;cursor:pointer;padding:0;line-height:1;">&times;</button>
+        </div>
+        <div class="coupon-form-body">
+            <input type="hidden" id="cf-id" value="0">
+            <div class="form-row">
+                <label>Код промокода *</label>
+                <input type="text" id="cf-code" placeholder="WELCOME15" style="text-transform:uppercase;">
+            </div>
+            <div class="form-row">
+                <label>Тип скидки</label>
+                <select id="cf-type">
+                    <option value="percent">Процент (%)</option>
+                    <option value="fixed">Фиксированная сумма (₽)</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Размер скидки *</label>
+                <input type="number" id="cf-value" placeholder="15" min="1" step="0.01">
+            </div>
+            <div class="form-row">
+                <label>Действует с (необязательно)</label>
+                <input type="datetime-local" id="cf-from">
+            </div>
+            <div class="form-row">
+                <label>Действует до (необязательно)</label>
+                <input type="datetime-local" id="cf-until">
+            </div>
+            <div class="form-row">
+                <label>Лимит использований (пусто = безлимит)</label>
+                <input type="number" id="cf-limit" placeholder="100" min="1">
+            </div>
+            <div class="form-row">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="cf-active" checked style="width:auto;">
+                    Активен
+                </label>
+            </div>
+        </div>
+        <div style="padding:16px 24px; border-top:1px solid #eee; display:flex; gap:12px;">
+            <button id="cf-cancel" style="flex:1; padding:10px; background:#f1f3f5; border:none; border-radius:6px; cursor:pointer; font-weight:500;">Отмена</button>
+            <button id="cf-save" style="flex:2; padding:10px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function formatDateSafe(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? '—' : d.toLocaleString('ru-RU');
+    }
+
+    function formatTime(dateStr) {
+        if (!dateStr) return '';
+        try {
+            return new Date(dateStr).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return ''; }
+    }
+
+    function getStatusBadge(status) {
+        const map = {
+            'new':         { bg: '#dbeafe', color: '#1e40af', text: 'Новый' },
+            'in_progress': { bg: '#fef3c7', color: '#92400e', text: 'В работе' },
+            'in_transit':  { bg: '#e0e7ff', color: '#3730a3', text: 'В пути' },
+            'delivered':   { bg: '#d1fae5', color: '#065f46', text: 'Доставлен' },
+            'closed':      { bg: '#e5e7eb', color: '#374151', text: 'Закрыто' },
+            'cancelled':   { bg: '#fee2e2', color: '#b91c1c', text: 'Отменён' },
+            'answered':    { bg: '#d1fae5', color: '#065f46', text: 'Отвечен' },
+            'paid':        { bg: '#d1fae5', color: '#065f46', text: 'Оплачен' }
+        };
+        return map[status] || map['new'];
+    }
+
+    function getReturnStatusBadge(status) {
+        const map = {
+            'pending':   { bg: '#fef3c7', color: '#92400e', text: 'Ожидает' },
+            'approved':  { bg: '#d1fae5', color: '#065f46', text: 'Одобрен' },
+            'rejected':  { bg: '#fee2e2', color: '#b91c1c', text: 'Отклонён' },
+            'completed': { bg: '#dbeafe', color: '#1e40af', text: 'Возврат выполнен' }
+        };
+        return map[status] || map['pending'];
+    }
+
+    const RETURN_REASON_MAP = {
+        'defective': 'Брак / неисправность',
+        'not-as-described': 'Не соответствует описанию',
+        'damaged': 'Повреждён при доставке',
+        'changed-mind': 'Передумал(а)',
+        'wrong-item': 'Пришёл не тот товар',
+        'other': 'Другая причина'
+    };
+
+    const RETURN_FINAL_STATUSES = ['completed', 'rejected'];
+
+    const STATUS_ORDER = {
+        'new': 0, 'in_progress': 1, 'in_transit': 2,
+        'delivered': 3, 'closed': 4, 'cancelled': 99
+    };
+    const FINAL_STATUSES = ['closed', 'cancelled'];
+
+    let currentChatTicketId = null;
+
+    function showNotification(message, type) {
+        const notif = document.createElement('div');
+        notif.style.cssText =
+            'position:fixed;top:20px;right:20px;padding:14px 24px;border-radius:6px;' +
+            'color:#fff;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);' +
+            'animation:slideIn 0.3s ease-out;font-size:14px;' +
+            'background:' + (type === 'success' ? '#10b981' : '#ef4444');
+        notif.textContent = message;
+        document.body.appendChild(notif);
+        setTimeout(() => notif.remove(), 3000);
+    }
+
+    function showTab(tab, btnElement) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+        if (tab === 'products') loadAdminProducts();
+        else if (tab === 'orders') loadOrders();
+        else if (tab === 'coupons') loadAdminCoupons();
+        else if (tab === 'returns') loadReturns();
+        else if (tab === 'support') loadSupport();
+        else if (tab === 'reviews') loadReviews();
+    }
+
+    // --- ВХОД ---
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', async () => {
+            const loginInput = document.getElementById('admin-login');
+            const passInput = document.getElementById('admin-pass');
+            const msg = document.getElementById('auth-msg');
+            if (!loginInput || !passInput) return;
+            const login = loginInput.value.trim();
+            const pass = passInput.value.trim();
+            msg.textContent = '';
+
+            try {
+                const r = await fetch('api/auth-admin.php', {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ login, password: pass })
+                });
+                const text = await r.text();
+                let d;
+                try { d = JSON.parse(text); }
+                catch (e) { throw new Error('Invalid JSON'); }
+
+                if (d && d.success) {
+                    document.getElementById('auth-screen').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    const adminDisplay = document.getElementById('current-admin-display');
+                    if (adminDisplay) {
+                        adminDisplay.style.display = 'inline-block';
+                        adminDisplay.textContent = 'Вы вошли как: ' + escapeHtml(d.admin_login || 'admin');
+                    }
+                    showTab('orders');
+                } else {
+                    msg.textContent = d ? (d.message || 'Ошибка авторизации') : 'Ошибка данных';
+                    msg.style.color = '#ef4444';
+                }
+            } catch (e) {
+                console.error('Auth error:', e);
+                msg.textContent = 'Ошибка соединения. Проверь консоль.';
+                msg.style.color = '#ef4444';
+            }
+        });
+    }
+
+    // --- ВЫХОД ---
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await fetch('api/logout-admin.php', { method: 'POST', credentials: 'include' });
+                location.reload();
+            } catch (e) { alert('Не удалось выйти. Обновите страницу вручную.'); }
+        });
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab || 'orders';
+            showTab(tabName, btn);
+        });
+    });
+
+    // --- ОБНОВЛЕНИЕ СТАТУСА (заказы и поддержка) ---
+    async function updateStatus(id, newStatus, btn, type) {
+        if (btn) {
+            btn.disabled = true;
+            btn.dataset.originalText = btn.textContent;
+            btn.textContent = '...';
+        }
+        try {
+            const res = await fetch('api/admin-change-status.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: newStatus, type: type || 'order' }),
+            });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); }
+            catch (e) {
+                console.error('Сервер вернул не JSON:', text.substring(0, 300));
+                showNotification('Ошибка сервера. Проверьте консоль (F12).', 'error');
+                if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText; }
+                return;
+            }
+            if (data.success) {
+                showNotification('Статус изменён на: ' + getStatusBadge(newStatus).text, 'success');
+                const row = document.querySelector('[data-order-id="' + id + '"]');
+                if (row) {
+                    const badge = row.querySelector('.status-badge');
+                    if (badge) {
+                        const st = getStatusBadge(newStatus);
+                        badge.textContent = st.text;
+                        badge.style.background = st.bg;
+                        badge.style.color = st.color;
+                    }
+                    if (FINAL_STATUSES.indexOf(newStatus) !== -1) {
+                        const actionsContainer = row.querySelector('.actions-container');
+                        if (actionsContainer) {
+                            actionsContainer.innerHTML = '';
+                            var span = document.createElement('span');
+                            span.textContent = getStatusBadge(newStatus).text;
+                            span.style.color = '#9ca3af';
+                            span.style.fontSize = '13px';
+                            actionsContainer.appendChild(span);
+                        }
+                    }
+                }
+                setTimeout(function() {
+                    if (type === 'support') loadSupport();
+                    else loadOrders();
+                }, 500);
+            } else {
+                showNotification('Ошибка: ' + (data.message || 'Не удалось обновить статус'), 'error');
+                if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText; }
+            }
+        } catch (e) {
+            console.error('updateStatus error:', e);
+            showNotification('Ошибка сети. Проверьте консоль (F12).', 'error');
+            if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText; }
+        }
+    }
+
+    // --- ОБНОВЛЕНИЕ СТАТУСА ВОЗВРАТА ---
+    async function updateReturnStatus(id, newStatus, btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.dataset.originalText = btn.textContent;
+            btn.textContent = '...';
+        }
+        try {
+            const res = await fetch('api/admin-change-status.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: newStatus, type: 'return' }), credentials: 'include'
+            });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); }
+            catch (e) {
+                console.error('Сервер вернул не JSON:', text.substring(0, 300));
+                showNotification('Ошибка сервера. Проверьте консоль (F12).', 'error');
+                if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText; }
+                return;
+            }
+            if (data.success) {
+                showNotification('Статус возврата изменён на: ' + getReturnStatusBadge(newStatus).text, 'success');
+                setTimeout(loadReturns, 500);
+            } else {
+                showNotification('Ошибка: ' + (data.message || 'Не удалось обновить статус'), 'error');
+                if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText; }
+            }
+        } catch (e) {
+            console.error('updateReturnStatus error:', e);
+            showNotification('Ошибка сети. Проверьте консоль (F12).', 'error');
+            if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText; }
+        }
+    }
+
+    // --- ЗАКАЗЫ ---
+    const ORDER_BUTTONS = [
+        { text: 'В работе',  status: 'in_progress', cls: 'btn-work' },
+        { text: 'В пути',    status: 'in_transit',  cls: 'btn-transit' },
+        { text: 'Доставлен', status: 'delivered',   cls: 'btn-delivered' },
+        { text: 'Закрыть',   status: 'closed',      cls: 'btn-close' },
+        { text: 'Отмена',    status: 'cancelled',   cls: 'btn-cancel' }
+    ];
+
+    async function loadOrders() {
+        const container = document.getElementById('tab-content');
+        if (!container) return;
+        container.innerHTML = '<p style="padding: 20px; color: #666; text-align:center;">Загрузка заказов...</p>';
+
+        try {
+            const res = await fetch('api/admin-get-orders.php?_=' + Date.now(), { credentials: 'include' });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON: ' + text.substring(0, 200)); }
+
+            if (!data.success) {
+                container.innerHTML = '<p style="color:red; padding:20px; text-align:center;">' + escapeHtml(data.message || 'Ошибка') + '</p>';
+                return;
+            }
+            const rows = data.orders || [];
+            if (rows.length === 0) {
+                container.innerHTML = '<p style="padding: 20px; color: #888; text-align:center;">Нет заказов.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.style.width = '100%'; table.style.borderCollapse = 'collapse';
+            table.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['ID', 'Клиент', 'Адрес', 'Сумма', 'Промокод', 'Скидка', 'Статус', 'Дата', 'Действия'].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h; th.style.padding = '12px 16px';
+                th.style.borderBottom = '2px solid #e5e7eb';
+                th.style.color = '#6b7280'; th.style.fontWeight = '600';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow); table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            rows.forEach(function(o) {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-order-id', o.id);
+                tr.style.borderBottom = '1px solid #f3f4f6';
+                tr.addEventListener('mouseenter', () => tr.style.background = '#f9fafb');
+                tr.addEventListener('mouseleave', () => tr.style.background = 'transparent');
+
+                const safe = function(val) { return val ? String(val).replace(/[<>]/g, '') : ''; };
+
+                var tdId = document.createElement('td');
+                tdId.style.padding = '12px 16px';
+                tdId.textContent = o.id_str || '#' + o.id;
+                tr.appendChild(tdId);
+
+                var tdClient = document.createElement('td');
+                tdClient.innerHTML = '<strong>' + escapeHtml(o.name || 'Гость') + '</strong><br><small style="color:#9ca3af">' + escapeHtml(o.user_email || o.phone || '') + '</small>';
+                tdClient.style.padding = '12px 16px'; tr.appendChild(tdClient);
+
+                var tdAddr = document.createElement('td');
+                tdAddr.textContent = safe(o.address || 'Не указан');
+                tdAddr.style.cssText = 'padding:12px 16px;max-width:200px;white-space:nowrap;text-overflow:ellipsis;color:#4b5563;';
+                tr.appendChild(tdAddr);
+
+                var tdSum = document.createElement('td');
+                tdSum.textContent = safe(o.total || 0) + ' ₽';
+                tdSum.style.cssText = 'padding:12px 16px;font-weight:bold;'; tr.appendChild(tdSum);
+
+                var tdCoupon = document.createElement('td');
+                tdCoupon.style.cssText = 'padding:12px 16px;text-align:center;';
+                if (o.coupon_code) {
+                    var couponBadge = document.createElement('span');
+                    couponBadge.style.cssText = 'background:#e8f4fd;color:#1f7aae;padding:3px 8px;border-radius:4px;font-weight:600;font-size:0.8rem;';
+                    couponBadge.textContent = o.coupon_code;
+                    tdCoupon.appendChild(couponBadge);
+                } else {
+                    tdCoupon.innerHTML = '<span style="color:#ccc;">—</span>';
+                }
+                tr.appendChild(tdCoupon);
+
+                var tdDiscount = document.createElement('td');
+                tdDiscount.style.cssText = 'padding:12px 16px;text-align:center;';
+                if (parseFloat(o.discount) > 0) {
+                    tdDiscount.innerHTML = '<span style="color:#e74c3c;font-weight:600;">−' + parseFloat(o.discount).toLocaleString('ru-RU') + ' ₽</span>';
+                } else {
+                    tdDiscount.innerHTML = '<span style="color:#ccc;">0 ₽</span>';
+                }
+                tr.appendChild(tdDiscount);
+
+                var tdStatus = document.createElement('td'); tdStatus.style.padding = '12px 16px';
+                var badge = document.createElement('span'); badge.className = 'status-badge';
+                var st = getStatusBadge(o.status); badge.textContent = st.text;
+                badge.style.cssText = 'padding:4px 8px;border-radius:4px;background:' + st.bg + ';color:' + st.color + ';font-size:12px;font-weight:500;';
+                tdStatus.appendChild(badge); tr.appendChild(tdStatus);
+
+                var tdDate = document.createElement('td');
+                tdDate.textContent = formatDateSafe(o.created_at);
+                tdDate.style.cssText = 'padding:12px 16px;color:#9ca3af;'; tr.appendChild(tdDate);
+
+                var tdActions = document.createElement('td'); tdActions.style.padding = '12px 16px';
+                var actionsContainer = document.createElement('div');
+                actionsContainer.className = 'actions-container';
+                actionsContainer.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+
+                if (FINAL_STATUSES.indexOf(o.status) === -1) {
+                    var currentOrder = STATUS_ORDER[o.status] !== undefined ? STATUS_ORDER[o.status] : 0;
+                    ORDER_BUTTONS.forEach(function(btnDef) {
+                        var btn = document.createElement('button');
+                        btn.textContent = btnDef.text;
+                        btn.className = 'btn-action ' + btnDef.cls;
+                        btn.setAttribute('data-status', btnDef.status);
+                        var btnOrder = STATUS_ORDER[btnDef.status] !== undefined ? STATUS_ORDER[btnDef.status] : 0;
+                        if (btnOrder !== 99 && btnOrder <= currentOrder) btn.disabled = true;
+                        btn.onclick = function() { updateStatus(o.id, btnDef.status, btn, 'orders'); };
+                        actionsContainer.appendChild(btn);
+                    });
+                } else {
+                    var span = document.createElement('span');
+                    span.textContent = getStatusBadge(o.status).text;
+                    span.style.cssText = 'color:#9ca3af;font-size:13px;';
+                    actionsContainer.appendChild(span);
+                }
+                tdActions.appendChild(actionsContainer); tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            container.innerHTML = '';
+            container.appendChild(table);
+        } catch (e) {
+            console.error('loadOrders error:', e);
+            container.innerHTML = '<p style="color:red; padding: 20px; text-align:center;">Ошибка загрузки заказов.</p>';
+        }
+    }
+
+
+    // --- ВОЗВРАТЫ ---
+    async function loadReturns() {
+        const container = document.getElementById('tab-content');
+        if (!container) return;
+        container.innerHTML = '<p style="padding: 20px; color: #666; text-align:center;">Загрузка возвратов...</p>';
+
+        try {
+            const res = await fetch('api/admin-get-returns.php?_=' + Date.now(), { credentials: 'include' });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON: ' + text.substring(0, 200)); }
+
+            if (!data.success) {
+                container.innerHTML = '<p style="color:red; padding:20px; text-align:center;">' + escapeHtml(data.message || 'Ошибка') + '</p>';
+                return;
+            }
+            const rows = data.returns || [];
+            if (rows.length === 0) {
+                container.innerHTML = '<p style="padding: 20px; color: #888; text-align:center;">Заявок на возврат пока нет.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.style.width = '100%'; table.style.borderCollapse = 'collapse';
+            table.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['ID', 'Заказ', 'Клиент', 'Товары', 'Причина', 'Способ возврата', 'Статус', 'Дата', 'Действия'].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h; th.style.padding = '12px 16px';
+                th.style.borderBottom = '2px solid #e5e7eb';
+                th.style.color = '#6b7280'; th.style.fontWeight = '600';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow); table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            rows.forEach(function(r) {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-return-id', r.id);
+                tr.style.borderBottom = '1px solid #f3f4f6';
+                tr.addEventListener('mouseenter', () => tr.style.background = '#f9fafb');
+                tr.addEventListener('mouseleave', () => tr.style.background = 'transparent');
+
+                var tdId = document.createElement('td');
+                tdId.textContent = '#' + escapeHtml(r.id);
+                tdId.style.padding = '12px 16px';
+                tr.appendChild(tdId);
+
+                var tdOrder = document.createElement('td');
+                tdOrder.textContent = escapeHtml(r.order_id || '—');
+                tdOrder.style.cssText = 'padding:12px 16px;font-family:monospace;font-size:13px;';
+                tr.appendChild(tdOrder);
+
+                var tdClient = document.createElement('td');
+                tdClient.innerHTML = '<strong>' + escapeHtml(r.email || 'Гость') + '</strong>' + (r.user_id ? '<br><small style="color:#9ca3af">ID: ' + escapeHtml(r.user_id) + '</small>' : '');
+                tdClient.style.padding = '12px 16px';
+                tr.appendChild(tdClient);
+
+                var tdItems = document.createElement('td');
+                tdItems.style.cssText = 'padding:12px 16px;max-width:220px;';
+                var itemsHtml = '';
+                try {
+                    var items = typeof r.items_json === 'string' ? JSON.parse(r.items_json) : (r.items_json || []);
+                    if (Array.isArray(items) && items.length > 0) {
+                        itemsHtml = items.map(function(it) {
+                            return escapeHtml(it.name || 'Товар') + ' ×' + (it.qty || 1);
+                        }).join('<br>');
+                    } else {
+                        itemsHtml = '—';
+                    }
+                } catch (e) { itemsHtml = '—'; }
+                tdItems.innerHTML = itemsHtml;
+                tr.appendChild(tdItems);
+
+                var tdReason = document.createElement('td');
+                tdReason.textContent = RETURN_REASON_MAP[r.reason] || r.reason || '—';
+                tdReason.style.cssText = 'padding:12px 16px;font-size:13px;';
+                if (r.comment) {
+                    var commentSpan = document.createElement('div');
+                    commentSpan.style.cssText = 'font-size:11px;color:#9ca3af;margin-top:4px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                    commentSpan.textContent = r.comment;
+                    commentSpan.title = r.comment;
+                    tdReason.appendChild(commentSpan);
+                }
+                tr.appendChild(tdReason);
+
+                var tdRefund = document.createElement('td');
+                tdRefund.style.cssText = 'padding:12px 16px;font-size:13px;';
+                var refundText = r.refund_method === 'card' ? 'Банковская карта' :
+                                 r.refund_method === 'sbp' ? 'СБП' :
+                                 r.refund_method === 'cash' ? 'Наличные' : r.refund_method || '—';
+                tdRefund.textContent = refundText;
+                if (r.refund_details && r.refund_method !== 'cash') {
+                    var detailsDiv = document.createElement('div');
+                    detailsDiv.style.cssText = 'font-size:11px;color:#9ca3af;margin-top:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                    detailsDiv.textContent = r.refund_details;
+                    detailsDiv.title = r.refund_details;
+                    tdRefund.appendChild(detailsDiv);
+                }
+                tr.appendChild(tdRefund);
+
+                var tdStatus = document.createElement('td');
+                tdStatus.style.padding = '12px 16px';
+                var badge = document.createElement('span');
+                badge.className = 'status-badge';
+                var st = getReturnStatusBadge(r.status);
+                badge.textContent = st.text;
+                badge.style.cssText = 'padding:4px 8px;border-radius:4px;background:' + st.bg + ';color:' + st.color + ';font-size:12px;font-weight:500;';
+                tdStatus.appendChild(badge);
+                tr.appendChild(tdStatus);
+
+                var tdDate = document.createElement('td');
+                tdDate.textContent = formatDateSafe(r.created_at);
+                tdDate.style.cssText = 'padding:12px 16px;color:#9ca3af;';
+                tr.appendChild(tdDate);
+
+                var tdActions = document.createElement('td');
+                tdActions.style.padding = '12px 16px';
+                var actionsContainer = document.createElement('div');
+                actionsContainer.className = 'actions-container';
+                actionsContainer.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+
+                if (RETURN_FINAL_STATUSES.indexOf(r.status) === -1) {
+                    if (r.status === 'pending') {
+                        var btnApprove = document.createElement('button');
+                        btnApprove.textContent = 'Одобрить';
+                        btnApprove.className = 'btn-action btn-approve';
+                        btnApprove.onclick = function() { updateReturnStatus(r.id, 'approved', btnApprove); };
+                        actionsContainer.appendChild(btnApprove);
+
+                        var btnReject = document.createElement('button');
+                        btnReject.textContent = 'Отклонить';
+                        btnReject.className = 'btn-action btn-reject';
+                        btnReject.onclick = function() { updateReturnStatus(r.id, 'rejected', btnReject); };
+                        actionsContainer.appendChild(btnReject);
+                    }
+                    if (r.status === 'approved') {
+                        var btnRefund = document.createElement('button');
+                        btnRefund.textContent = 'Возврат выполнен';
+                        btnRefund.className = 'btn-action btn-refund';
+                        btnRefund.onclick = function() { updateReturnStatus(r.id, 'completed', btnRefund); };
+                        actionsContainer.appendChild(btnRefund);
+
+                        var btnReject2 = document.createElement('button');
+                        btnReject2.textContent = 'Отклонить';
+                        btnReject2.className = 'btn-action btn-reject';
+                        btnReject2.onclick = function() { updateReturnStatus(r.id, 'rejected', btnReject2); };
+                        actionsContainer.appendChild(btnReject2);
+                    }
+                } else {
+                    var span = document.createElement('span');
+                    span.textContent = getReturnStatusBadge(r.status).text;
+                    span.style.cssText = 'color:#9ca3af;font-size:13px;';
+                    actionsContainer.appendChild(span);
+                }
+                tdActions.appendChild(actionsContainer);
+                tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            container.innerHTML = '';
+            container.appendChild(table);
+        } catch (e) {
+            console.error('loadReturns error:', e);
+            container.innerHTML = '<p style="color:red; padding: 20px; text-align:center;">Ошибка загрузки возвратов.</p>';
+        }
+    }
+
+    // --- ПОДДЕРЖКА ---
+    async function loadSupport() {
+        const container = document.getElementById('tab-content');
+        if (!container) return;
+        container.innerHTML = '<p style="padding: 20px; color: #666; text-align:center;">Загрузка обращений...</p>';
+
+        try {
+            const res = await fetch('api/admin-get-support.php?_=' + Date.now(), { credentials: 'include' });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON'); }
+
+            if (!data.success) {
+                container.innerHTML = '<p style="color:red; padding:20px; text-align:center;">' + escapeHtml(data.message || 'Ошибка') + '</p>';
+                return;
+            }
+            const rows = data.tickets || data.support || [];
+            if (rows.length === 0) {
+                container.innerHTML = '<p style="padding: 20px; color: #888; text-align:center;">Нет обращений.</p>';
+                return;
+            }
+
+            const listContainer = document.createElement('div');
+            listContainer.style.cssText = 'display:flex;flex-direction:column;gap:12px;margin-top:10px;';
+
+            rows.forEach(function(t) {
+                const card = document.createElement('div');
+                card.className = 'ticket-card';
+
+                var statusInfo = getStatusBadge(t.status);
+                var msgCount = (t.messages || []).length;
+                var lastMsg = msgCount > 0 ? (t.messages[msgCount - 1].message || '').substring(0, 60) : (t.message || '').substring(0, 60);
+
+                card.innerHTML =
+                    '<div class="ticket-card-header">' +
+                        '<span class="ticket-subject">#' + escapeHtml(t.id) + ' — ' + escapeHtml(t.subject || 'Без темы') + '</span>' +
+                        '<span class="ticket-status" style="background:' + statusInfo.bg + ';color:' + statusInfo.color + ';">' + statusInfo.text + '</span>' +
+                    '</div>' +
+                    '<div class="ticket-date">От: ' + escapeHtml(t.name || 'Гость') + ' (' + escapeHtml(t.email || '-') + ') · ' + formatDateSafe(t.created_at) + ' · ' + msgCount + ' сообщ.</div>' +
+                    '<div class="ticket-preview">' + escapeHtml(lastMsg) + '</div>';
+
+                var actionsDiv = document.createElement('div');
+                actionsDiv.className = 'ticket-actions';
+
+                var btnOpen = document.createElement('button');
+                btnOpen.textContent = '💬 Открыть чат';
+                btnOpen.className = 'btn-action';
+                btnOpen.style.background = 'var(--primary)';
+                btnOpen.onclick = function(e) { e.stopPropagation(); openChat(t.id, t.subject || 'Без темы'); };
+                actionsDiv.appendChild(btnOpen);
+
+                if (t.status !== 'closed' && t.status !== 'cancelled') {
+                    var btnWork = document.createElement('button');
+                    btnWork.textContent = 'В работе';
+                    btnWork.className = 'btn-action btn-work';
+                    if (t.status === 'in_progress') btnWork.disabled = true;
+                    btnWork.onclick = function(e) { e.stopPropagation(); updateStatus(t.id, 'in_progress', btnWork, 'support'); };
+                    actionsDiv.appendChild(btnWork);
+
+                    var btnClose = document.createElement('button');
+                    btnClose.textContent = 'Закрыть';
+                    btnClose.className = 'btn-action btn-close';
+                    btnClose.onclick = function(e) { e.stopPropagation(); updateStatus(t.id, 'closed', btnClose, 'support'); };
+                    actionsDiv.appendChild(btnClose);
+                }
+
+                card.appendChild(actionsDiv);
+                card.onclick = function() { openChat(t.id, t.subject || 'Без темы'); };
+                listContainer.appendChild(card);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(listContainer);
+        } catch (e) {
+            console.error('loadSupport error:', e);
+            container.innerHTML = '<p style="color:red; padding: 20px; text-align:center;">Ошибка загрузки обращений.</p>';
+        }
+    }
+
+            async function toggleReviewVisibility(reviewId, btn) {
+        btn.disabled = true;
+        var originalText = btn.textContent;
+        btn.textContent = '...';
+
+        var newStatus = originalText.indexOf('Скрыть') !== -1 ? 'hidden' : 'visible';
+
+        try {
+            const res = await fetch('api/admin-change-status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: reviewId, status: newStatus, type: 'review' }),
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (data.success) {
+                showNotification(newStatus === 'visible' ? 'Отзыв показан' : 'Отзыв скрыт', 'success');
+                setTimeout(loadReviews, 400);
+            } else {
+                showNotification(data.message || 'Ошибка', 'error');
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        } catch (e) {
+            showNotification('Ошибка сети', 'error');
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    // --- ОТЗЫВЫ ---
+    async function loadReviews() {
+        const container = document.getElementById('tab-content');
+        if (!container) return;
+        container.innerHTML = '<p style="padding:20px;color:#666;text-align:center;">Загрузка отзывов...</p>';
+
+        try {
+            const res = await fetch('api/admin-get-reviews.php?_=' + Date.now(), { credentials: 'include' });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON'); }
+
+            if (!data.success) {
+                container.innerHTML = '<p style="color:red;padding:20px;text-align:center;">' + escapeHtml(data.message || 'Ошибка') + '</p>';
+                return;
+            }
+
+            const rows = data.reviews || [];
+            if (rows.length === 0) {
+                container.innerHTML = '<p style="padding:20px;color:#888;text-align:center;">Отзывов пока нет.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.style.cssText = 'width:100%;border-collapse:collapse;box-shadow:0 1px 3px rgba(0,0,0,0.1);';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['ID', 'Товар', 'Автор', 'Оценка', 'Текст', 'Статус', 'Дата', 'Действия'].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                th.style.cssText = 'padding:12px 16px;border-bottom:2px solid #e5e7eb;color:#6b7280;font-weight:600;';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            rows.forEach(function(r) {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-review-id', r.id);
+                tr.style.borderBottom = '1px solid #f3f4f6';
+                tr.addEventListener('mouseenter', () => tr.style.background = '#f9fafb');
+                tr.addEventListener('mouseleave', () => tr.style.background = 'transparent');
+
+                // ID
+                var tdId = document.createElement('td');
+                tdId.textContent = '#' + r.id;
+                tdId.style.padding = '12px 16px';
+                tr.appendChild(tdId);
+
+                // Товар
+                var tdProduct = document.createElement('td');
+                tdProduct.innerHTML = '<strong>' + escapeHtml(r.product_name) + '</strong>';
+                tdProduct.style.padding = '12px 16px';
+                tr.appendChild(tdProduct);
+
+                // Автор
+                var tdAuthor = document.createElement('td');
+                tdAuthor.textContent = r.user_name || 'Гость';
+                tdAuthor.style.padding = '12px 16px';
+                tr.appendChild(tdAuthor);
+
+                // Оценка (звёзды)
+                var tdRating = document.createElement('td');
+                tdRating.style.cssText = 'padding:12px 16px;text-align:center;';
+                var stars = '';
+                for (var i = 1; i <= 5; i++) {
+                    stars += i <= r.rating ? '★' : '☆';
+                }
+                tdRating.innerHTML = '<span style="font-size:18px;color:#fbbf24;letter-spacing:2px;">' + stars + '</span>';
+                tr.appendChild(tdRating);
+
+                // Текст
+                var tdText = document.createElement('td');
+                tdText.textContent = (r.text || '').substring(0, 80) + ((r.text || '').length > 80 ? '...' : '');
+                tdText.style.cssText = 'padding:12px 16px;font-size:13px;color:#4b5563;max-width:250px;';
+                if (r.text) tdText.title = r.text;
+                tr.appendChild(tdText);
+
+                // Статус
+                var tdStatus = document.createElement('td');
+                tdStatus.style.padding = '12px 16px';
+                var badge = document.createElement('span');
+                if (r.is_visible) {
+                    badge.style.cssText = 'padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;background:#d1fae5;color:#065f46;';
+                    badge.textContent = 'Виден';
+                } else {
+                    badge.style.cssText = 'padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;background:#fee2e2;color:#b91c1c;';
+                    badge.textContent = 'Скрыт';
+                }
+                tdStatus.appendChild(badge);
+                tr.appendChild(tdStatus);
+
+                // Дата
+                var tdDate = document.createElement('td');
+                tdDate.textContent = formatDateSafe(r.created_at);
+                tdDate.style.cssText = 'padding:12px 16px;color:#9ca3af;font-size:13px;';
+                tr.appendChild(tdDate);
+
+                // Действия
+                var tdActions = document.createElement('td');
+                tdActions.style.padding = '12px 16px';
+                var btnToggle = document.createElement('button');
+                btnToggle.textContent = r.is_visible ? '👁 Скрыть' : '👁‍🗨 Показать';
+                btnToggle.className = 'btn-action ' + (r.is_visible ? 'btn-cancel' : 'btn-approve');
+                btnToggle.onclick = function() { toggleReviewVisibility(r.id, btnToggle); };
+                tdActions.appendChild(btnToggle);
+                tr.appendChild(tdActions);
+
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            container.innerHTML = '';
+            container.appendChild(table);
+        } catch (e) {
+            console.error('loadReviews error:', e);
+            container.innerHTML = '<p style="color:red;padding:20px;text-align:center;">Ошибка загрузки отзывов.</p>';
+        }
+    }
+
+    // --- ЧАТ ---
+    let chatPollTimer = null;
+    let lastMsgCount = 0;
+
+    function openChat(ticketId, subject) {
+        currentChatTicketId = ticketId;
+        document.getElementById('chatTitle').textContent = subject || 'Переписка';
+        document.getElementById('chatOverlay').classList.add('active');
+        var inputEl = document.getElementById('chatInput');
+        if (inputEl) inputEl.value = '';
+        lastMsgCount = 0;
+        loadChatMessages(ticketId);
+        if (chatPollTimer) clearInterval(chatPollTimer);
+        chatPollTimer = setInterval(function() {
+            if (currentChatTicketId) loadChatMessages(currentChatTicketId, true);
+        }, 3000);
+    }
+
+    function closeChat() {
+        document.getElementById('chatOverlay').classList.remove('active');
+        currentChatTicketId = null;
+        if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+    }
+
+    async function loadChatMessages(ticketId, isPolling) {
+        const container = document.getElementById('chatMessages');
+        if (!container) return;
+        const inputArea = document.getElementById('chatInputArea');
+
+        if (!isPolling) {
+            container.innerHTML = '<p style="color:#999; text-align:center;">Загрузка...</p>';
+        }
+
+        try {
+            const res = await fetch('api/admin-get-support.php?ticket_id=' + ticketId + '&_=' + Date.now(), { credentials: 'include' });
+            const data = await res.json();
+
+            if (!data.success || !data.tickets || data.tickets.length === 0) {
+                if (!isPolling) container.innerHTML = '<p style="color:red; text-align:center;">Не удалось загрузить</p>';
+                return;
+            }
+
+            const ticket = data.tickets[0];
+            const messages = ticket.messages || [];
+            const isClosed = (ticket.status === 'closed' || ticket.status === 'cancelled');
+
+            if (isPolling && messages.length === lastMsgCount && !isClosed) return;
+            lastMsgCount = messages.length;
+
+            if (messages.length === 0) {
+                if (!isPolling) container.innerHTML = '<p style="color:#999; text-align:center;">Сообщений пока нет</p>';
+            } else {
+                let html = '';
+                messages.forEach(function(m) {
+                    var isAdmin = m.sender === 'admin';
+                    var senderLabel = isAdmin ? 'Администратор' : (ticket.name || 'Клиент');
+                    html += '<div class="chat-msg ' + (isAdmin ? 'admin' : 'client') + '"><div class="chat-msg-sender">' + escapeHtml(senderLabel) + '</div><div>' + escapeHtml(m.message) + '</div><div class="chat-msg-time">' + formatTime(m.created_at) + '</div></div>';
+                });
+                container.innerHTML = html;
+                container.scrollTop = container.scrollHeight;
+            }
+
+            if (isClosed) {
+                if (inputArea) {
+                    inputArea.innerHTML = '<div style="padding:15px;text-align:center;color:#999;font-size:0.9rem;background:#f9fafb;border-radius:8px;">🔒 Чат закрыт. Новые сообщения недоступны.</div>';
+                }
+                if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+                loadSupport();
+            } else {
+                if (!document.getElementById('chatInput')) {
+                    inputArea.innerHTML = '<textarea id="chatInput" rows="2" placeholder="Введите ответ клиенту..."></textarea><button id="chatSendBtn">Отправить</button>';
+                    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+                    document.getElementById('chatInput').addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+                    });
+                }
+            }
+        } catch (e) {
+            if (!isPolling) {
+                console.error('loadChatMessages error:', e);
+                container.innerHTML = '<p style="color:red; text-align:center;">Ошибка загрузки</p>';
+            }
+        }
+    }
+
+    async function sendChatMessage() {
+        var input = document.getElementById('chatInput');
+        if (!input) return;
+        var btn = document.getElementById('chatSendBtn');
+        if (!btn) return;
+        var text = input.value.trim();
+        if (!text || !currentChatTicketId) return;
+
+        btn.disabled = true; input.disabled = true;
+        try {
+            const res = await fetch('api/admin-reply-support.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticket_id: currentChatTicketId, response: text }),
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (data.success) {
+                input.value = '';
+                lastMsgCount = 0;
+                loadChatMessages(currentChatTicketId);
+                loadSupport();
+            } else {
+                alert('Ошибка: ' + (data.message || 'Не удалось отправить'));
+            }
+        } catch (e) {
+            console.error('sendChatMessage error:', e);
+            alert('Ошибка соединения');
+        } finally {
+            var newBtn = document.getElementById('chatSendBtn');
+            var newInput = document.getElementById('chatInput');
+            if (newBtn) newBtn.disabled = false;
+            if (newInput) { newInput.disabled = false; newInput.focus(); }
+        }
+    }
+
+    // --- УПРАВЛЕНИЕ ТОВАРАМИ ---
+    async function loadAdminProducts() {
+    const container = document.getElementById('tab-content');
+    if (!container) return;
+    container.innerHTML = '<p style="padding:20px;color:#666;text-align:center;">Загрузка товаров...</p>';
+
+    try {
+        const res = await fetch('api/admin-get-products.php?_=' + Date.now(), { credentials: 'include' });
+        const data = await res.json();
+
+        if (!data.success) {
+            container.innerHTML = '<p style="color:red;padding:20px;text-align:center;">' + escapeHtml(data.message || 'Ошибка') + '</p>';
+            return;
+        }
+
+        const rows = data.products || [];
+        if (rows.length === 0) {
+            container.innerHTML = '<p style="padding:20px;color:#888;text-align:center;">Товаров пока нет. Нажмите «Добавить товар».</p>';
+            addProductButton(container);
+            return;
+        }
+
+        const table = document.createElement('table');
+        table.style.cssText = 'width:100%;border-collapse:collapse;box-shadow:0 1px 3px rgba(0,0,0,0.1);';
+
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        ['ID', 'Фото', 'Название', 'Цена', 'Категория', 'Описание', 'Действия'].forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            th.style.cssText = 'padding:12px 16px;border-bottom:2px solid #e5e7eb;color:#6b7280;font-weight:600;';
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        rows.forEach(function(p) {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f3f4f6';
+
+            // ID
+            var tdId = document.createElement('td');
+            tdId.textContent = '#' + p.id;
+            tdId.style.padding = '12px 16px';
+            tr.appendChild(tdId);
+
+            // Фото (берём первое из списка)
+            var tdImg = document.createElement('td');
+            tdImg.style.cssText = 'padding:12px 16px;width:80px;';
+            var firstImg = p.image ? p.image.split(',')[0].trim() : '';
+            if (firstImg) {
+                tdImg.innerHTML = '<img src="' + escapeHtml(firstImg) + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;" onerror="this.style.display=\'none\'">';
+            } else {
+                tdImg.innerHTML = '<div style="width:60px;height:60px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#9ca3af;">нет</div>';
+            }
+            tr.appendChild(tdImg);
+
+            // Название + рейтинг (рейтинг подгрузим отдельно)
+            var tdName = document.createElement('td');
+            tdName.innerHTML = '<strong>' + escapeHtml(p.name) + '</strong>';
+            tdName.style.padding = '12px 16px';
+            // Сохраняем ссылку на ячейку, чтобы позже вставить туда рейтинг
+            tdName.dataset.productId = p.id;
+            tr.appendChild(tdName);
+
+            // Цена (исправлено: без дублирования)
+            var tdPrice = document.createElement('td');
+            tdPrice.textContent = p.price.toLocaleString('ru-RU') + ' ₽';
+            tdPrice.style.cssText = 'padding:12px 16px;font-weight:bold;';
+            tr.appendChild(tdPrice);
+
+            // Категория
+            var tdCat = document.createElement('td');
+            tdCat.textContent = p.category || '—';
+            tdCat.style.cssText = 'padding:12px 16px;font-size:13px;color:#6b7280;';
+            tr.appendChild(tdCat);
+
+            // Описание
+            var tdDesc = document.createElement('td');
+            tdDesc.textContent = (p.description || '').substring(0, 50) + ((p.description || '').length > 50 ? '...' : '');
+            tdDesc.style.cssText = 'padding:12px 16px;font-size:13px;color:#6b7280;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+            tr.appendChild(tdDesc);
+
+            // Действия
+            var tdActions = document.createElement('td');
+            tdActions.style.padding = '12px 16px';
+            var actionsDiv = document.createElement('div');
+            actionsDiv.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+
+            var btnEdit = document.createElement('button');
+            btnEdit.textContent = '✏️ Редактировать';
+            btnEdit.className = 'btn-action';
+            btnEdit.style.background = 'var(--primary)';
+            btnEdit.onclick = function() { openProductForm(p); };
+            actionsDiv.appendChild(btnEdit);
+
+            var btnDelete = document.createElement('button');
+            btnDelete.textContent = '🗑 Удалить';
+            btnDelete.className = 'btn-action btn-cancel';
+            btnDelete.onclick = function() { deleteProduct(p.id, p.name); };
+            actionsDiv.appendChild(btnDelete);
+
+            tdActions.appendChild(actionsDiv);
+            tr.appendChild(tdActions);
+
+            tbody.appendChild(tr);
+
+            // Подгрузка рейтинга для этого товара
+            fetch('api/get-reviews.php?product_id=' + p.id)
+                .then(r => r.json())
+                .then(data => {
+                    // Находим ячейку по dataset.productId, чтобы не ошибиться
+                    const targetCell = container.querySelector('td[data-product-id="' + p.id + '"]');
+                    if (!targetCell) return; // ячейка могла исчезнуть из-за ререндера
+
+                    if (data.success && data.total_reviews > 0) {
+                        var ratingBox = document.createElement('div');
+                        ratingBox.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:4px;font-size:0.85rem;';
+
+                        var stars = '';
+                        var fullStars = Math.floor(data.avg_rating);
+                        var hasHalf = (data.avg_rating - fullStars) >= 0.5;
+                        for (var i = 1; i <= 5; i++) {
+                            if (i <= fullStars) stars += '<span style="color:#fbbf24;">★</span>';
+                            else if (i === fullStars + 1 && hasHalf) stars += '<span style="color:#fbbf24;">⯨</span>';
+                            else stars += '<span style="color:#d1d5db;">★</span>';
+                        }
+
+                        ratingBox.innerHTML = stars + '<span style="color:#9ca3af; margin-left:4px;">(' + data.total_reviews + ')</span>';
+
+                        // Вставляем рейтинг в ячейку
+                        targetCell.appendChild(ratingBox);
+                    }
+                })
+                .catch(err => {
+                    console.error('Ошибка загрузки рейтинга для товара ' + p.id, err);
+                    // Можно добавить иконку «ошибка» или просто ничего не делать — чтобы не ломать админку
+                });
+        });
+
+        table.appendChild(tbody);
+
+        container.innerHTML = '';
+        addProductButton(container);
+        container.appendChild(table);
+    } catch (e) {
+        console.error('loadAdminProducts error:', e);
+        container.innerHTML = '<p style="color:red;padding:20px;text-align:center;">Ошибка загрузки товаров.</p>';
+    }
+}
+
+    function addProductButton(container) {
+        var btn = document.createElement('button');
+        btn.textContent = '+ Добавить товар';
+        btn.className = 'btn-action btn-approve';
+        btn.style.cssText = 'margin:0 0 16px 0;padding:10px 20px;font-size:14px;';
+        btn.onclick = function() { openProductForm(null); };
+        container.appendChild(btn);
+    }
+
+    function openProductForm(product) {
+        var modal = document.getElementById('product-form-modal');
+        var title = document.getElementById('product-form-title');
+
+        if (product) {
+            title.textContent = 'Редактировать товар #' + product.id;
+            document.getElementById('pf-id').value = product.id;
+            document.getElementById('pf-name').value = product.name || '';
+            document.getElementById('pf-price').value = product.price || '';
+            document.getElementById('pf-category').value = product.category || 'other';
+            document.getElementById('pf-image').value = product.image || '';
+            document.getElementById('pf-description').value = product.description || '';
+        } else {
+            title.textContent = 'Новый товар';
+            document.getElementById('pf-id').value = 0;
+            document.getElementById('pf-name').value = '';
+            document.getElementById('pf-price').value = '';
+            document.getElementById('pf-category').value = 'soap';
+            document.getElementById('pf-image').value = '';
+            document.getElementById('pf-description').value = '';
+        }
+        updateImagePreview();
+        modal.classList.add('active');
+    }
+
+    function closeProductForm() {
+        document.getElementById('product-form-modal').classList.remove('active');
+    }
+
+    function updateImagePreview() {
+    var raw = document.getElementById('pf-image').value.trim();
+    var preview = document.getElementById('pf-img-preview');
+
+    if (!raw) {
+        preview.innerHTML = '<span style="color:#9ca3af;font-size:0.85rem;">Фотографии не выбраны</span>';
+        return;
+    }
+
+    var urls = raw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+
+    if (urls.length === 0) {
+        preview.innerHTML = '<span style="color:#9ca3af;font-size:0.85rem;">Фотографии не выбраны</span>';
+        return;
+    }
+
+    preview.innerHTML = '';
+    urls.forEach(function(url, idx) {
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'flex:0 0 auto;width:100px;height:100px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;';
+
+        var img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'max-width:100%;max-height:100%;object-fit:cover;';
+        img.onerror = function() {
+            wrap.innerHTML = '<span style="color:#ef4444;font-size:0.7rem;text-align:center;padding:4px;">Ошибка</span>';
+        };
+
+        var removeBtn = document.createElement('button');
+        removeBtn.innerHTML = '&times;';
+        removeBtn.style.cssText = 'position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(239,68,68,0.9);color:white;border:none;cursor:pointer;font-size:14px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;';
+        removeBtn.onclick = function(e) {
+            e.stopPropagation();
+            urls.splice(idx, 1);
+            document.getElementById('pf-image').value = urls.join(',');
+            updateImagePreview();
+        };
+
+        wrap.appendChild(img);
+        wrap.appendChild(removeBtn);
+        preview.appendChild(wrap);
+    });
+
+    var counter = document.createElement('div');
+    counter.style.cssText = 'width:100%;text-align:right;font-size:0.8rem;color:#9ca3af;margin-top:4px;';
+    counter.textContent = urls.length + ' ' + (urls.length === 1 ? 'фото' : 'фото');
+    preview.appendChild(counter);
+}
+
+document.getElementById('pf-upload-btn').addEventListener('click', function() {
+    document.getElementById('pf-image-file').click();
+});
+
+document.getElementById('pf-image-file').addEventListener('change', async function() {
+    var files = this.files;
+    if (!files || files.length === 0) return;
+
+    var btn = document.getElementById('pf-upload-btn');
+    btn.textContent = '⏳ Загрузка...';
+    btn.disabled = true;
+
+    var formData = new FormData();
+    for (var i = 0; i < files.length; i++) {
+        formData.append('images[]', files[i]);
+    }
+
+    try {
+        var res = await fetch('api/admin-upload-image.php', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        var data = await res.json();
+
+        if (data.success && data.paths.length > 0) {
+            var current = document.getElementById('pf-image').value.trim();
+            var allPaths = current ? current.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; }) : [];
+            data.paths.forEach(function(p) { allPaths.push(p); });
+            document.getElementById('pf-image').value = allPaths.join(',');
+            updateImagePreview();
+
+            if (data.errors && data.errors.length > 0) {
+                showNotification('Часть файлов не загружена: ' + data.errors.join('; '), 'error');
+            }
+        } else {
+            showNotification('Ошибка загрузки: ' + (data.message || (data.errors || []).join('; ')), 'error');
+        }
+    } catch (e) {
+        showNotification('Ошибка сети при загрузке файлов', 'error');
+    } finally {
+        btn.textContent = '📁 Выбрать файлы с компьютера';
+        btn.disabled = false;
+        this.value = '';
+    }
+});
+
+
+    async function saveProduct() {
+        var btn = document.getElementById('pf-save');
+        var id = parseInt(document.getElementById('pf-id').value, 10);
+        var name = document.getElementById('pf-name').value.trim();
+        var price = parseFloat(document.getElementById('pf-price').value);
+        var category = document.getElementById('pf-category').value;
+        // Нормализуем: разбиваем по переносам/запятым, чистим, собираем через запятую
+        var rawImage = document.getElementById('pf-image').value.trim();
+        var imageUrls = rawImage.split(/[\n,]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+        var image = imageUrls.join(',');
+        var description = document.getElementById('pf-description').value.trim();
+
+        if (!name) { showNotification('Введите название', 'error'); return; }
+        if (!price || price <= 0) { showNotification('Введите цену', 'error'); return; }
+
+        btn.disabled = true; btn.textContent = 'Сохранение...';
+
+        try {
+            var res = await fetch('api/admin-save-product.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, name: name, price: price, category: category, image: image, description: description }),
+                credentials: 'include'
+            });
+            var data = await res.json();
+            if (data.success) {
+                showNotification(id > 0 ? 'Товар обновлён' : 'Товар создан', 'success');
+                closeProductForm();
+                loadAdminProducts();
+            } else {
+                showNotification('Ошибка: ' + (data.message || 'Не удалось сохранить'), 'error');
+            }
+        } catch (e) {
+            showNotification('Ошибка сети', 'error');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Сохранить';
+        }
+    }
+
+    async function deleteProduct(id, name) {
+    if (!confirm('Удалить товар "' + name + '"? Действие необратимо.')) return;
+    try {
+        var res = await fetch('api/admin-delete-product.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id }),
+            credentials: 'include'
+        });
+        var data = await res.json();
+        if (data.success) {
+            showNotification('Товар удалён', 'success');
+            loadAdminProducts();
+        } else {
+            showNotification('Ошибка: ' + (data.message || 'Не удалось удалить товар'), 'error');
+        }
+    } catch (e) {
+        showNotification('Ошибка сети при удалении', 'error');
+        console.error(e);
+    }
+}
+
+    document.getElementById('product-form-close').addEventListener('click', closeProductForm);
+    document.getElementById('pf-cancel').addEventListener('click', closeProductForm);
+    document.getElementById('pf-save').addEventListener('click', saveProduct);
+    document.getElementById('pf-image').addEventListener('input', updateImagePreview);
+    document.getElementById('product-form-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeProductForm();
+    });
+
+    // --- УПРАВЛЕНИЕ ПРОМОКОДАМИ ---
+    async function loadAdminCoupons() {
+        const container = document.getElementById('tab-content');
+        if (!container) return;
+        container.innerHTML = '<p style="padding:20px;color:#666;text-align:center;">Загрузка промокодов...</p>';
+
+        try {
+            const res = await fetch('api/admin-get-coupons.php?_=' + Date.now(), { credentials: 'include' });
+            const data = await res.json();
+
+            if (!data.success) {
+                container.innerHTML = '<p style="color:red;padding:20px;text-align:center;">' + escapeHtml(data.message || 'Ошибка') + '</p>';
+                return;
+            }
+
+            var addBtn = document.createElement('button');
+            addBtn.textContent = '+ Создать промокод';
+            addBtn.className = 'btn-action btn-approve';
+            addBtn.style.cssText = 'margin:0 0 16px 0;padding:10px 20px;font-size:14px;';
+            addBtn.onclick = function() { openCouponForm(null); };
+
+            const rows = data.coupons || [];
+            if (rows.length === 0) {
+                container.innerHTML = '';
+                container.appendChild(addBtn);
+                container.appendChild(document.createElement('p')).textContent = 'Промокодов пока нет.';
+                container.lastChild.style.cssText = 'padding:20px;color:#888;text-align:center;';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.style.cssText = 'width:100%;border-collapse:collapse;box-shadow:0 1px 3px rgba(0,0,0,0.1);';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Код', 'Скидка', 'Срок действия', 'Лимит', 'Использовано', 'Статус', 'Действия'].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h; th.style.cssText = 'padding:12px 16px;border-bottom:2px solid #e5e7eb;color:#6b7280;font-weight:600;';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow); table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            rows.forEach(function(c) {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #f3f4f6';
+
+                var tdCode = document.createElement('td');
+                tdCode.innerHTML = '<strong style="font-family:monospace;font-size:1rem;color:var(--primary);">' + escapeHtml(c.code) + '</strong>';
+                tdCode.style.padding = '12px 16px';
+                tr.appendChild(tdCode);
+
+                var tdDisc = document.createElement('td');
+                tdDisc.textContent = c.discount_type === 'percent' ? c.discount_value + '%' : c.discount_value.toLocaleString('ru-RU') + ' ₽';
+                tdDisc.style.cssText = 'padding:12px 16px;font-weight:600;';
+                tr.appendChild(tdDisc);
+
+                var tdDate = document.createElement('td');
+                tdDate.style.cssText = 'padding:12px 16px;font-size:13px;color:#6b7280;';
+                var dateText = 'Бессрочно';
+                if (c.valid_from || c.valid_until) {
+                    var from = c.valid_from ? formatDateSafe(c.valid_from) : '—';
+                    var until = c.valid_until ? formatDateSafe(c.valid_until) : '—';
+                    dateText = from + ' → ' + until;
+                }
+                tdDate.textContent = dateText;
+                tr.appendChild(tdDate);
+
+                var tdLimit = document.createElement('td');
+                tdLimit.textContent = c.usage_limit !== null ? c.usage_limit : '∞';
+                tdLimit.style.cssText = 'padding:12px 16px;text-align:center;';
+                tr.appendChild(tdLimit);
+
+                var tdUsed = document.createElement('td');
+                tdUsed.textContent = c.times_used;
+                tdUsed.style.cssText = 'padding:12px 16px;text-align:center;';
+                tr.appendChild(tdUsed);
+
+                var tdStatus = document.createElement('td');
+                tdStatus.style.padding = '12px 16px';
+                var badge = document.createElement('span');
+                badge.style.cssText = 'padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;';
+                if (c.is_active) {
+                    badge.style.background = '#d1fae5'; badge.style.color = '#065f46'; badge.textContent = 'Активен';
+                } else {
+                    badge.style.background = '#fee2e2'; badge.style.color = '#b91c1c'; badge.textContent = 'Выключен';
+                }
+                tdStatus.appendChild(badge);
+                tr.appendChild(tdStatus);
+
+                var tdActions = document.createElement('td');
+                tdActions.style.padding = '12px 16px';
+                var actionsDiv = document.createElement('div');
+                actionsDiv.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+
+                var btnEdit = document.createElement('button');
+                btnEdit.textContent = '✏️'; btnEdit.className = 'btn-action';
+                btnEdit.style.background = 'var(--primary)';
+                btnEdit.onclick = function() { openCouponForm(c); };
+                actionsDiv.appendChild(btnEdit);
+
+                var btnDelete = document.createElement('button');
+                btnDelete.textContent = '🗑'; btnDelete.className = 'btn-action btn-cancel';
+                btnDelete.onclick = function() { deleteCoupon(c.id, c.code); };
+                actionsDiv.appendChild(btnDelete);
+
+                tdActions.appendChild(actionsDiv);
+                tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+
+            container.innerHTML = '';
+            container.appendChild(addBtn);
+            container.appendChild(table);
+        } catch (e) {
+            console.error('loadAdminCoupons error:', e);
+            container.innerHTML = '<p style="color:red;padding:20px;text-align:center;">Ошибка загрузки промокодов.</p>';
+        }
+    }
+
+    function openCouponForm(coupon) {
+        var modal = document.getElementById('coupon-form-modal');
+        var title = document.getElementById('coupon-form-title');
+
+        if (coupon) {
+            title.textContent = 'Редактировать промокод';
+            document.getElementById('cf-id').value = coupon.id;
+            document.getElementById('cf-code').value = coupon.code || '';
+            document.getElementById('cf-type').value = coupon.discount_type || 'percent';
+            document.getElementById('cf-value').value = coupon.discount_value || '';
+            document.getElementById('cf-from').value = coupon.valid_from ? coupon.valid_from.substring(0, 16) : '';
+            document.getElementById('cf-until').value = coupon.valid_until ? coupon.valid_until.substring(0, 16) : '';
+            document.getElementById('cf-limit').value = coupon.usage_limit !== null ? coupon.usage_limit : '';
+            document.getElementById('cf-active').checked = !!coupon.is_active;
+        } else {
+            title.textContent = 'Новый промокод';
+            document.getElementById('cf-id').value = 0;
+            document.getElementById('cf-code').value = '';
+            document.getElementById('cf-type').value = 'percent';
+            document.getElementById('cf-value').value = '';
+            document.getElementById('cf-from').value = '';
+            document.getElementById('cf-until').value = '';
+            document.getElementById('cf-limit').value = '';
+            document.getElementById('cf-active').checked = true;
+        }
+        modal.classList.add('active');
+    }
+
+    function closeCouponForm() {
+        document.getElementById('coupon-form-modal').classList.remove('active');
+    }
+
+    async function saveCoupon() {
+        var btn = document.getElementById('cf-save');
+        var id = parseInt(document.getElementById('cf-id').value, 10);
+        var code = document.getElementById('cf-code').value.trim().toUpperCase();
+        var discountType = document.getElementById('cf-type').value;
+        var discountValue = parseFloat(document.getElementById('cf-value').value);
+        var validFrom = document.getElementById('cf-from').value;
+        var validUntil = document.getElementById('cf-until').value;
+        var usageLimit = document.getElementById('cf-limit').value;
+        var isActive = document.getElementById('cf-active').checked ? 1 : 0;
+
+        if (!code) { showNotification('Введите код', 'error'); return; }
+        if (!discountValue || discountValue <= 0) { showNotification('Введите размер скидки', 'error'); return; }
+
+        btn.disabled = true; btn.textContent = 'Сохранение...';
+
+        try {
+            var res = await fetch('api/admin-save-coupon.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: id, code: code, discount_type: discountType,
+                    discount_value: discountValue, valid_from: validFrom, valid_until: validUntil,
+                    usage_limit: usageLimit === '' ? null : parseInt(usageLimit, 10),
+                    is_active: isActive
+                }),
+                credentials: 'include'
+            });
+            var data = await res.json();
+            if (data.success) {
+                showNotification(id > 0 ? 'Промокод обновлён' : 'Промокод создан', 'success');
+                closeCouponForm();
+                loadAdminCoupons();
+            } else {
+                showNotification('Ошибка: ' + (data.message || 'Не удалось сохранить'), 'error');
+            }
+        } catch (e) {
+            showNotification('Ошибка сети', 'error');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Сохранить';
+        }
+    }
+
+    async function deleteCoupon(id, code) {
+        if (!confirm('Удалить промокод "' + code + '"?')) return;
+        try {
+            var res = await fetch('api/admin-delete-coupon.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id }), credentials: 'include'
+            });
+            var data = await res.json();
+            if (data.success) {
+                showNotification('Промокод удалён', 'success');
+                loadAdminCoupons();
+            } else {
+                showNotification('Ошибка: ' + (data.message || 'Не удалось удалить'), 'error');
+            }
+        } catch (e) {
+            showNotification('Ошибка сети', 'error');
+        }
+    }
+
+    document.getElementById('coupon-form-close').addEventListener('click', closeCouponForm);
+    document.getElementById('cf-cancel').addEventListener('click', closeCouponForm);
+    document.getElementById('cf-save').addEventListener('click', saveCoupon);
+    document.getElementById('coupon-form-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeCouponForm();
+    });
+
+    document.getElementById('chatClose').addEventListener('click', closeChat);
+    document.getElementById('chatOverlay').addEventListener('click', function(e) {
+        if (e.target === this) closeChat();
+    });
+    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+    document.getElementById('chatInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+    });
+</script>
+</body>
+</html>
